@@ -1,0 +1,664 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <meta name="referrer" content="no-referrer-when-downgrade">
+    
+
+    <title>Redis源码剖析——ae（二） | Fh&#39;s Blog</title>
+    <meta property="og:title" content="Redis源码剖析——ae（二） - Fh&#39;s Blog">
+    <meta property="og:type" content="article">
+        
+    <meta property="article:published_time" content='2019-03-25T14:10:06&#43;08:00'>
+        
+        
+    <meta property="article:modified_time" content='2019-03-25T14:10:06&#43;08:00'>
+        
+    <meta name="Keywords" content="golang,go语言,redis,mysql,mongo,kafka,rocketMQ,消息中间件,分布一致性,算法,操作系统">
+    <meta name="description" content="Redis源码剖析——ae（二）">
+        <meta name="author" content="feihao">
+        
+    <meta property="og:url" content="http://fhstack.github.io/post/2019-03-25-redisyuanmapouxiaeer/">
+    <link rel="shortcut icon" href='/favicon.ico'  type="image/x-icon">
+
+    <link rel="stylesheet" href='/css/normalize.css'>
+    <link rel="stylesheet" href='/css/style.css'>
+    <script type="text/javascript" src="//cdn.bootcdn.net/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+    
+    
+    
+    
+    
+    
+        <link rel="stylesheet" href='/css/douban.css'>
+    
+        <link rel="stylesheet" href='/css/other.css'>
+    
+</head>
+
+
+<body>
+    <header id="header" class="clearfix">
+    <div class="container">
+        <div class="col-group">
+            <div class="site-name ">
+                
+                    <a id="logo" href="http://fhstack.github.io/">
+                        Fh&#39;s Blog
+                    </a>
+                
+                <p class="description">已识乾坤大，犹怜草木青</p>
+            </div>
+            <div>
+                <nav id="nav-menu" class="clearfix">
+                    <a class="current" href="http://fhstack.github.io/">首页</a>
+                    
+                    <a  href="http://fhstack.github.io/tools/" title="工具">工具</a>
+                    
+                    <a  href="http://fhstack.github.io/archives/" title="归档">归档</a>
+                    
+                    <a  href="http://fhstack.github.io/about/" title="关于">关于</a>
+                    
+                </nav>
+            </div>
+        </div>
+    </div>
+</header>
+
+    <div id="body">
+        <div class="container">
+            <div class="col-group">
+
+                <div class="col-8" id="main">
+                    
+<div class="res-cons">
+    <style type="text/css">
+    .post-toc {
+        position: fixed;
+        width: 200px;
+        margin-left: -210px;
+        padding: 5px 10px;
+        font-family: Athelas, STHeiti, Microsoft Yahei, serif;
+        font-size: 12px;
+        border: 1px solid rgba(0, 0, 0, .07);
+        border-radius: 5px;
+        background-color: rgba(255, 255, 255, 0.98);
+        background-clip: padding-box;
+        -webkit-box-shadow: 1px 1px 2px rgba(0, 0, 0, .125);
+        box-shadow: 1px 1px 2px rgba(0, 0, 0, .125);
+        word-wrap: break-word;
+        white-space: nowrap;
+        -webkit-box-sizing: border-box;
+        box-sizing: border-box;
+        z-index: 999;
+        cursor: pointer;
+        max-height: 70%;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+
+    .post-toc .post-toc-title {
+        width: 100%;
+        margin: 0 auto;
+        font-size: 20px;
+        font-weight: 400;
+        text-transform: uppercase;
+        text-align: center;
+    }
+
+    .post-toc .post-toc-content {
+        font-size: 15px;
+    }
+
+    .post-toc .post-toc-content>nav>ul {
+        margin: 10px 0;
+    }
+
+    .post-toc .post-toc-content ul {
+        padding-left: 20px;
+        list-style: square;
+        margin: 0.5em;
+        line-height: 1.8em;
+    }
+
+    .post-toc .post-toc-content ul ul {
+        padding-left: 15px;
+        display: none;
+    }
+
+    @media print,
+    screen and (max-width:1057px) {
+        .post-toc {
+            display: none;
+        }
+    }
+</style>
+<div class="post-toc" style="position: absolute; top: 188px;">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+        <nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#完结">完结</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+    </div>
+</div>
+<script type="text/javascript">
+    $(document).ready(function () {
+        var postToc = $(".post-toc");
+        if (postToc.length) {
+            var leftPos = $("#main").offset().left;
+            if(leftPos<220){
+                postToc.css({"width":leftPos-10,"margin-left":(0-leftPos)})
+            }
+
+            var t = postToc.offset().top - 20,
+                a = {
+                    start: {
+                        position: "absolute",
+                        top: t
+                    },
+                    process: {
+                        position: "fixed",
+                        top: 20
+                    },
+                };
+            $(window).scroll(function () {
+                var e = $(window).scrollTop();
+                e < t ? postToc.css(a.start) : postToc.css(a.process)
+            })
+        }
+    })
+</script>
+    <article class="post">
+        <header>
+            <h1 class="post-title">Redis源码剖析——ae（二）</h1>
+        </header>
+        <date class="post-meta meta-date">
+            2019年3月25日
+        </date>
+        
+        <div class="post-meta">
+            <span>|</span>
+            
+            <span class="meta-category"><a href='/categories/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB'>源码阅读</a></span>
+            
+        </div>
+        
+        
+        <div class="post-meta">
+            <span id="busuanzi_container_page_pv">|<span id="busuanzi_value_page_pv"></span><span>
+                    阅读</span></span>
+        </div>
+        
+        
+        <div class="post-content">
+            <p>开始进入ae事件库的实现，这部分代码位于ae.c</p>
+<hr>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190325/1553518087124571.png" />
+    
+    <figcaption class="p-2 text-center">1553518087124571.png</figcaption>
+</figure></p>
+<p>同样，没有任何外部库的依赖，其中config.h配置头文件会决定IO多路复用的选取，如下</p>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190325/1553518189574268.png" />
+    
+    <figcaption class="p-2 text-center">1553518189574268.png</figcaption>
+</figure></p>
+<p>此处按照性能降序排列，这四种实现都是对系统IO多路复用库API进行一定程度的封装，其中kqueue和evport用于FreeBSD和Solaris，由于二者不如linux流行，因此平时见的会比较少，大部分人都没有用过kqueue与evport，因此我们后面封装部分会去剖析epoll api的封装。这四个实现实现封装成同一套API，把IO多路复用与事件库本身的解耦，其封装都是标准使用。</p>
+<p>ps：下面我们统一使用实现为epoll</p>
+<hr>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190325/1553519026593187.png" />
+    
+    <figcaption class="p-2 text-center">1553519026593187.png</figcaption>
+</figure></p>
+<p>创建一个时间循环，如果有任何步骤不成功则全部rollback，对于文件事件需要把每个事件的mask标志置为AE_NONE</p>
+<p>events数组里面全部放的是文件事件，setsize实际上是events数组（文件事件）的size，maxfd记录的是当前events数组中句柄值最大的文件描述符，这样处理的原因是为了可以在O(1)时间内对任意文件事件进行操作。例如，对于文件描述符fd=11的上的文件事件，他的FileEvent就被放在events[11]，即使他可能是第一个被加入进events数组的，这样也算是空间换时间。</p>
+<p>再有一点就是fired数组是用于记录epoll原生接口中的事件数组中每个fd是被何种它关注的事件所激活，这个可能现在这样看会觉得比较绕，慢慢看，后面就明白了，总之fired数组记录了每次就绪的fd与fd上对应的时间类型。</p>
+<hr>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190325/1553520143775263.png" />
+    
+    <figcaption class="p-2 text-center">1553520143775263.png</figcaption>
+</figure></p>
+<p>获取setsize大小，不多说</p>
+<hr>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190325/1553520449139477.png" />
+    
+    <figcaption class="p-2 text-center">1553520449139477.png</figcaption>
+</figure></p>
+<p>重置setsize大小，即对events数组的size进行操作。</p>
+<p>如果setsize&lt;=maxfd，那么返回失败，显然如果setsize&lt;=maxfd，那么包括maxfd对应的events[maxfd]在内，一定会有一部分事件丢失，这是不允许的；</p>
+<p>其中aeApiResize调用的那个四个实现里的封号好的API，重置IO多路复用监听对象的数量，很简单，例如在epoll中就会调整struct epoll_event数组的的大小；</p>
+<p>接下来调整events数组与fired数组的长度，setsize的大小，最要把events中文件事件的mask再次初始化为AE_NONE</p>
+<hr>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190325/1553521169813727.png" />
+    
+    <figcaption class="p-2 text-center">1553521169813727.png</figcaption>
+</figure></p>
+<p>删除整个事件循环，不多说。</p>
+<hr>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190325/1553521722749457.png" />
+    
+    <figcaption class="p-2 text-center">1553521722749457.png</figcaption>
+</figure></p>
+<p>在事件循环中创建一个文件事件，首先当然是检查新创建时间的fd是否放得下，若是放不下须返回失败。</p>
+<p>接下来找到fd在events数组中对应“槽位”（个人认为很形象）的地址，在aeApiAddEvent中真正要增加该文件描述符上的事件，同样也很简单，在epoll中就是对应EPOLLIN与EPOLLOUT，最后调用epoll_ctl。</p>
+<p>此后对该文件事件的mask位进行赋值，同时注册读处理函数与写处理函数到该事件上，最后检查是否需要更新maxfd。</p>
+<p>这样下来，就把文件描述符fd与事件循环中的events[fd]进行了绑定，并注册了相应的处理函数，在epoll（或者其他）中也完成了底层真正的注册。</p>
+<hr>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190325/1553522161677003.png" />
+    
+    <figcaption class="p-2 text-center">1553522161677003.png</figcaption>
+</figure></p>
+<p>删除事件循环中的某个文件事件，注意可能是仅删除读事件或写事件中的一个还有一个保留</p>
+<p>首先检查fd是否在范围内，检查该事件是否需要删除，接下来在底层真正删除它，然后把fe的mask标志位进行相应的置位。</p>
+<p>最后若完全删除（即读写都不留）了maxfd对应的事件，还需要从后往前遍历找到当前最大fd对应的事件以更新maxfd。</p>
+<hr>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190325/1553523027989213.png" />
+    
+    <figcaption class="p-2 text-center">1553523027989213.png</figcaption>
+</figure></p>
+<p>获取指定fd上的事件类型，注意一个细节，一般人可能注意不到，在高并发的系统中，是获取值还是指针不是一个随意的事，比如此处为何非要获取该事件的指针再返回对应mask，因为如果获取的是值的话，很有可能你获取的值下一时刻就已经被更新，因此需要获取指针。</p>
+<hr>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190325/1553523296211094.png" />
+    
+    <figcaption class="p-2 text-center">1553523296211094.png</figcaption>
+</figure></p>
+<p>aeGetTime获取此刻的Unix事件，精确到毫秒，aeAddMilliSeconds在入参sec与ms对应的时间上增加入参milliseconds毫秒，更新sec与ms。与刚才说的对应，这些操作一定都会用指针，而不会去用值，很多人也许只会觉得传指针方便，事实上真正的好处还是最大程度的保证了实时性。</p>
+<hr>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190325/1553523733638838.png" />
+    
+    <figcaption class="p-2 text-center">1553523733638838.png</figcaption>
+</figure></p>
+<p>创建一个时间事件，时间事件即达到对应时间点时才能被触发的事件，亦可被称为定时时间。这里需要注意时间事件是以单向链表进行直接串联，每次新增加的一个时间事件会放在链表头。id是时间事件的唯一标识，就像文件描述符唯一标识文件事件。</p>
+<hr>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190325/1553523891740374.png" />
+    
+    <figcaption class="p-2 text-center">1553523891740374.png</figcaption>
+</figure></p>
+<p>删除指定id的时间事件，实际上这个删除动作是给这个时间事件加入删除标志位，后面在处理时间事件的函数的中回去回收有这个标志位的时间事件。</p>
+<hr>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190325/1553524048592033.png" />
+    
+    <figcaption class="p-2 text-center">1553524048592033.png</figcaption>
+</figure></p>
+<p>搜索离此刻最近的一个时间事件，在此认为时间事件链表中的时间事件的触发时间都是被设定在此刻之前的，因此要遍历链表找出距离现在最近的一个时间事件，这个过程的复杂度为O(N)。的确可以优化，但是目前redis没有这个需求，如果对于时间事件有优化需求的话，有两种方案，官方提出两种方案：</p>
+<ul>
+<li>
+<p>有序的插入，按离此刻时间的时间差对时间事件升序排列，这样链表头永远离现在最近，可在O(1)时间内取到离现在最近的时间事件，但是这样会使插入的复杂度变为O(N)。</p>
+</li>
+<li>
+<p>使用跳表，O(1)时间内取到离现在最近的时间事件，并且插入时间复杂度为O(logN)。</p>
+</li>
+</ul>
+<p>![image.png][1]</p>
+<p>处理时间事件，首先注释中的话，直白的翻译一下：</p>
+<p>（要处理的场景）如果系统时钟在某个时刻被调到了未来，接着又被调回到了正确的时间，那么时间事件可能被以一种随机的方式推迟执行。通常这意味着计划好的操作不会尽快被执行。</p>
+<p>（处理方法）在这里我们会尽力去监测系统时间的畸变，并且当时间发生畸变时会强制尽快执行所有的时间事件：这样做的原因就在于，尽早去处理事件总是比遥遥无期（是在不知道用什么词才合适了）的去推迟它要好，并且实践也验证了这一点。</p>
+<p>这一点就是通过lasttime与now来进行比较来判断系统时钟是否发生畸变，正常情况下now时间必定会大于等于lasttime，lasttime记录的是上一次处理时间事件的时刻或者是刚初始化eventsloop时的时刻（见aeCreateEventLoop），因此当now小于lasttime时，会把eventsloop中的所有事件事件的执行时刻改为0，这就保证了这些时间接下来会全部被执行，这个过程只需要遍历一遍整个时间事件链表就能完成。</p>
+<p>最后无论时间是否发生了畸变都要更新lasttime</p>
+<hr>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190326/1553597764806211.png" />
+    
+    <figcaption class="p-2 text-center">1553597764806211.png</figcaption>
+</figure></p>
+<p>接下来在一个循环中开始处理时间事件，首先要做的是判断是否该时间事件是否被标记为删除，如果是则去释放该节点，并注意对是否需要更新链表头。在释放过程中，如果发现注册了finalizerProc清理函数则会使用其对clientData数据进行相应的清理工作，接下来释放整个时间事件节点，做完这些后遍历指针te往后走进入下次循环。</p>
+<p>接下来注意一个可能不会比较奇怪的地方，我们看到有这样一个判断：</p>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190326/1553598505934382.png" />
+    
+    <figcaption class="p-2 text-center">1553598505934382.png</figcaption>
+</figure></p>
+<p>是否不太明白？这部分是这样：因为一个时间事件本身的动作也可以是去创建一个新的时间事件在时间循环中，因为，我们在时间事件处理过中应该跳过由时间本身新创建的时间，这是符合逻辑的，同时也不会形成潜在死循环，不然还可以永远创建一个时间事件让他去执行创建一个时间事件的动作，这个地方的逻辑大部分人可能注意不到。</p>
+<p>接下来便是获取当前的时间，然后判断该时间事件是否已达到触发点，若达到则通过其执行其timeProc，接下来retval会接收timeProc返回值，这个返回值的意义是下次执行本时间事件到现在的间隔，如下</p>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190326/1553599189967214.png" />
+    
+    <figcaption class="p-2 text-center">1553599189967214.png</figcaption>
+</figure></p>
+<p>显然，时间事件明显就被分为了周期性时间事件与非周期性时间事件两种，非周期性时间在执行完后便会被置删除标志，在下次进入processTimeEvents时会被删除、清理。</p>
+<p>其中processed变量作为返回值，它会记录本次时间事件处理中真正处理时间事件的次数。</p>
+<hr>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190326/1553599882751963.png" />
+    
+    <figcaption class="p-2 text-center">1553599882751963.png</figcaption>
+</figure></p>
+<p>处理所有事件的主干函数，首先对于flags入参如下</p>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190326/1553599950498541.png" />
+    
+    <figcaption class="p-2 text-center">1553599950498541.png</figcaption>
+</figure></p>
+<p>flags可以标识处理的何种事件：文件事件、时间事件、二者都处理。同时AE_DONT_WAIT标志会让整个处理过程尽快结束尽量避免等待。</p>
+<p>在对flags做一个基本的检查后，进入下面</p>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190326/1553600153351974.png" />
+    
+    <figcaption class="p-2 text-center">1553600153351974.png</figcaption>
+</figure></p>
+<p>接下来的判断只会让两种情况进入：</p>
+<p>1、有文件事件需要处理</p>
+<p>2、flags被置时间事件标志位，并且是阻塞的方式</p>
+<p>若二者都不满足但是flags仍然被置时间事件标志位，则应该考虑不阻塞方式执行时间事件，如下</p>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190326/1553600398516226.png" />
+    
+    <figcaption class="p-2 text-center">1553600398516226.png</figcaption>
+</figure></p>
+<p>假设刚才的判断中满足一种情况，如下</p>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190326/1553600510404971.png" />
+    
+    <figcaption class="p-2 text-center">1553600510404971.png</figcaption>
+</figure></p>
+<p>如果flags被置位时间事件且是阻塞方式，那么就得先找出离现在最近将要被触发的一个时间时间，只要时间事件链表不为空，那么必定shortest必定不为空，那么接下来会获取此刻的时间，与shortest时间事件的触发时间点做差，得到一个后面需要阻塞等待的时间。在这个判断的else中，说明当前必定不是时间事件的处理（因为shortest为NULL可以说明，可以自己琢磨下），此时如果flags被置非阻塞标志位，那么把阻塞时间置为0，否则直接把tvp赋为NULL设定为阻塞模式。对，熟悉epoll的就能想到这必定是给epoll_wait中的时间参数用的。</p>
+<p>想一个问题，这个shortest对应的被阻塞的时间事件什么时候执行呢？当然是等下一以非阻塞方式处理时间事件进来的时候才能，因为只要是阻塞方式处理时间事件那么都没有机会去调用ProcessTimeEvents。</p>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190326/1553601164447769.png" />
+    
+    <figcaption class="p-2 text-center">1553601164447769.png</figcaption>
+</figure></p>
+<p>接下来调用对应的底层epoll被封装的api（或者其他），获取返回的就绪时间，fe中的fired数组在aeApiPoll中被修改了，记录了每个就绪的文件描述符及其对应的就绪时间。接下来便是进行相应时间的处理，初始有个值得注意的是rfired，假设读事件当前为就绪，那么rfired是0，那么只要写事件就绪，即使fe的写事件处理方法与读事件处理方法一样，写事件仍会被执行。相反，若读事件先被执行过，此时即使写事件可执行也要保证写事件处理方法与读事件处理方法必须不同。</p>
+<p>此处为何用fe-&gt;mask而不把fe-&gt;mask取出来放到某个变量，注释里说了，这是为了避免某些读事件或写事件在执行过程中修改当前了fd在eventloop中的mask而后面却仍然执行，这显然是不符合预期的。</p>
+<hr>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190326/1553602624650589.png" />
+    
+    <figcaption class="p-2 text-center">1553602624650589.png</figcaption>
+</figure></p>
+<p>wait某个fd被唤醒，不多说</p>
+<hr>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190326/1553604285903757.png" />
+    
+    <figcaption class="p-2 text-center">1553604285903757.png</figcaption>
+</figure></p>
+<p>主循环，可被stop的设定停止，如下</p>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190326/1553604359955216.png" />
+    
+    <figcaption class="p-2 text-center">1553604359955216.png</figcaption>
+</figure></p>
+<hr>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190326/1553604421499260.png" />
+    
+    <figcaption class="p-2 text-center">1553604421499260.png</figcaption>
+</figure></p>
+<p>获取底层实现api名，&ldquo;epoll&rdquo;、&ldquo;select&rdquo;、&ldquo;kqueue&rdquo;、&ldquo;evport&rdquo;</p>
+<hr>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190326/1553604499357284.png" />
+    
+    <figcaption class="p-2 text-center">1553604499357284.png</figcaption>
+</figure></p>
+<p>设置BeforeSleep方法，给外部调用</p>
+<hr>
+<h3 id="完结">完结</h3>
+<p>[1]: /wp-content/uploads/image/20190326/1553595541885473.png &ldquo;1553595541885473.png&rdquo;</p>
+
+        </div>
+
+        
+<div class="post-archive">
+    <ul class="post-copyright">
+        <li><strong>原文作者：</strong><a rel="author" href="http://fhstack.github.io/">Fh</a></li>
+        <li style="word-break:break-all"><strong>原文链接：</strong><a href="http://fhstack.github.io/post/2019-03-25-redisyuanmapouxiaeer/">http://fhstack.github.io/post/2019-03-25-redisyuanmapouxiaeer/</a></li>
+        <li><strong>版权声明：</strong>本作品采用<a rel="license" href="https://creativecommons.org/licenses/by-nc-nd/4.0/">知识共享署名-非商业性使用-禁止演绎 4.0 国际许可协议</a>进行许可，非商业转载请注明出处（作者，原文链接），商业转载请联系作者获得授权。</li>
+    </ul>
+</div>
+<br/>
+
+
+
+        
+
+<div class="post-archive">
+    <h2>See Also</h2>
+    <ul class="listing">
+        
+        <li><a href="/post/2019-03-25-redisyuanmapouxiaeyi/">Redis源码剖析——ae（一）</a></li>
+        
+        <li><a href="/post/2019-03-24-redisyuanmapouxiadlist/">Redis源码剖析——adlist</a></li>
+        
+        <li><a href="/post/2019-03-23-redisyuanmapouxigailan/">Redis源码剖析——概览</a></li>
+        
+        <li><a href="/post/2019-03-22-forkhoufashengleshenmewenjianpian/">fork后发生了什么——文件篇</a></li>
+        
+        <li><a href="/post/2019-03-16-forkhoufashengleshenmeneicunpian/">fork后发生了什么——内存篇</a></li>
+        
+    </ul>
+</div>
+
+
+        <div class="post-meta meta-tags">
+            
+            没有标签
+            
+        </div>
+    </article>
+    
+    
+
+    
+    
+    <div class="post bg-white">
+      <script src="https://utteranc.es/client.js"
+            repo= "your github repo"
+            issue-term="pathname"
+            theme="github-light"
+            crossorigin="anonymous"
+            async>
+      </script>
+    </div>
+    
+</div>
+
+                    <footer id="footer">
+    <div>
+        &copy; 2021 <a href="http://fhstack.github.io/">Fh&#39;s Blog By Fh</a>
+        
+    </div>
+    <br />
+    <div>
+        <div class="github-badge">
+            <a href="https://gohugo.io/" target="_black" rel="nofollow"><span class="badge-subject">Powered by</span><span class="badge-value bg-blue">Hugo</span></a>
+        </div>
+        <div class="github-badge">
+            <a href="https://www.flysnow.org/" target="_black"><span class="badge-subject">Design by</span><span class="badge-value bg-brightgreen">飞雪无情</span></a>
+        </div>
+        <div class="github-badge">
+            <a href="https://github.com/flysnow-org/maupassant-hugo" target="_black"><span class="badge-subject">Theme</span><span class="badge-value bg-yellowgreen">Maupassant</span></a>
+        </div>
+    </div>
+</footer>
+
+
+    
+    <script type="text/javascript">
+        window.MathJax = {
+            tex2jax: {
+                inlineMath: [['$', '$']],
+                processEscapes: true
+                }
+            };
+    </script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML' async></script>
+
+<a id="rocket" href="#top"></a>
+<script type="text/javascript" src='/js/totop.js?v=0.0.0' async=""></script>
+
+
+
+    <script type="text/javascript" src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script>
+
+
+
+
+    <script src='/js/douban.js'></script>
+
+                </div>
+
+                <div id="secondary">
+    <section class="widget">
+        <form id="search" action='http://fhstack.github.io/search/' method="get" accept-charset="utf-8" target="_blank" _lpchecked="1">
+      
+      <input type="text" name="q" maxlength="20" placeholder="Search">
+      <input type="hidden" name="sitesearch" value="http://fhstack.github.io/">
+      <button type="submit" class="submit icon-search"></button>
+</form>
+    </section>
+    
+    <section class="widget">
+        <h3 class="widget-title">最近文章</h3>
+<ul class="widget-list">
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2020-06-27-sync-mapyuanmayuedubiji/" title="sync.Map源码阅读笔记">sync.Map源码阅读笔记</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2020-06-02-quic/" title="QUIC">QUIC</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-06-17-redisyuanmapouxidicter/" title="Redis源码剖析——dict（二）">Redis源码剖析——dict（二）</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-06-14-redisyuanmapouxidict/" title="Redis源码剖析——dict（一）">Redis源码剖析——dict（一）</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-06-11-redisyuanmapouxiintset/" title="Redis源码剖析——intset">Redis源码剖析——intset</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-05-12-redisyuanmapouxihyperloglog/" title="Redis源码剖析——HyperLogLog">Redis源码剖析——HyperLogLog</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-05-08-redisyuanmapouxitiaobiaosan/" title="Redis源码剖析——跳表（三）">Redis源码剖析——跳表（三）</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-05-05-redisyuanmapouxitiaobiaoer/" title="Redis源码剖析——跳表（二）">Redis源码剖析——跳表（二）</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-05-03-redisyuanmapouxitiaobiaoyi/" title="Redis源码剖析——跳表（一）">Redis源码剖析——跳表（一）</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-04-20-nihuanzaizheyangxiekuaipai/" title="你还在这样写快排？">你还在这样写快排？</a>
+    </li>
+    
+</ul>
+    </section>
+
+    
+
+    <section class="widget">
+        <h3 class="widget-title"><a href='/categories/'>分类</a></h3>
+<ul class="widget-list">
+    
+    <li><a href="http://fhstack.github.io/categories/C/C&#43;&#43;/">C/C&#43;&#43; (1)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/Golang/">Golang (6)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/linux/">linux (3)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/%E6%9D%82%E8%AE%B0/">杂记 (1)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB/">源码阅读 (17)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/">算法与数据结构 (2)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/%E7%BD%91%E7%BB%9C/">网络 (1)</a></li>
+    
+</ul>
+    </section>
+
+    <section class="widget">
+        <h3 class="widget-title"><a href='/tags/'>标签</a></h3>
+<div class="tagcloud">
+    
+</div>
+    </section>
+
+    
+<section class="widget">
+    <h3 class="widget-title">友情链接</h3>
+    <ul class="widget-list">
+        
+        <li>
+            <a target="_blank" href="https://www.github.com/fhstack" title="我的Github">我的Githhub</a>
+        </li>
+        
+    </ul>
+</section>
+
+
+    <section class="widget">
+        <h3 class="widget-title">其它</h3>
+        <ul class="widget-list">
+            <li><a href="http://fhstack.github.io/index.xml">文章 RSS</a></li>
+        </ul>
+    </section>
+</div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

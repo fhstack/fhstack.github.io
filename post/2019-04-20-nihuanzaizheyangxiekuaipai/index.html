@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <meta name="referrer" content="no-referrer-when-downgrade">
+    
+
+    <title>你还在这样写快排？ | Fh&#39;s Blog</title>
+    <meta property="og:title" content="你还在这样写快排？ - Fh&#39;s Blog">
+    <meta property="og:type" content="article">
+        
+    <meta property="article:published_time" content='2019-04-20T06:35:40&#43;08:00'>
+        
+        
+    <meta property="article:modified_time" content='2019-04-20T06:35:40&#43;08:00'>
+        
+    <meta name="Keywords" content="golang,go语言,redis,mysql,mongo,kafka,rocketMQ,消息中间件,分布一致性,算法,操作系统">
+    <meta name="description" content="你还在这样写快排？">
+        <meta name="author" content="feihao">
+        
+    <meta property="og:url" content="http://fhstack.github.io/post/2019-04-20-nihuanzaizheyangxiekuaipai/">
+    <link rel="shortcut icon" href='/favicon.ico'  type="image/x-icon">
+
+    <link rel="stylesheet" href='/css/normalize.css'>
+    <link rel="stylesheet" href='/css/style.css'>
+    <script type="text/javascript" src="//cdn.bootcdn.net/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+    
+    
+    
+    
+    
+    
+        <link rel="stylesheet" href='/css/douban.css'>
+    
+        <link rel="stylesheet" href='/css/other.css'>
+    
+</head>
+
+
+<body>
+    <header id="header" class="clearfix">
+    <div class="container">
+        <div class="col-group">
+            <div class="site-name ">
+                
+                    <a id="logo" href="http://fhstack.github.io/">
+                        Fh&#39;s Blog
+                    </a>
+                
+                <p class="description">已识乾坤大，犹怜草木青</p>
+            </div>
+            <div>
+                <nav id="nav-menu" class="clearfix">
+                    <a class="current" href="http://fhstack.github.io/">首页</a>
+                    
+                    <a  href="http://fhstack.github.io/tools/" title="工具">工具</a>
+                    
+                    <a  href="http://fhstack.github.io/archives/" title="归档">归档</a>
+                    
+                    <a  href="http://fhstack.github.io/about/" title="关于">关于</a>
+                    
+                </nav>
+            </div>
+        </div>
+    </div>
+</header>
+
+    <div id="body">
+        <div class="container">
+            <div class="col-group">
+
+                <div class="col-8" id="main">
+                    
+<div class="res-cons">
+    <style type="text/css">
+    .post-toc {
+        position: fixed;
+        width: 200px;
+        margin-left: -210px;
+        padding: 5px 10px;
+        font-family: Athelas, STHeiti, Microsoft Yahei, serif;
+        font-size: 12px;
+        border: 1px solid rgba(0, 0, 0, .07);
+        border-radius: 5px;
+        background-color: rgba(255, 255, 255, 0.98);
+        background-clip: padding-box;
+        -webkit-box-shadow: 1px 1px 2px rgba(0, 0, 0, .125);
+        box-shadow: 1px 1px 2px rgba(0, 0, 0, .125);
+        word-wrap: break-word;
+        white-space: nowrap;
+        -webkit-box-sizing: border-box;
+        box-sizing: border-box;
+        z-index: 999;
+        cursor: pointer;
+        max-height: 70%;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+
+    .post-toc .post-toc-title {
+        width: 100%;
+        margin: 0 auto;
+        font-size: 20px;
+        font-weight: 400;
+        text-transform: uppercase;
+        text-align: center;
+    }
+
+    .post-toc .post-toc-content {
+        font-size: 15px;
+    }
+
+    .post-toc .post-toc-content>nav>ul {
+        margin: 10px 0;
+    }
+
+    .post-toc .post-toc-content ul {
+        padding-left: 20px;
+        list-style: square;
+        margin: 0.5em;
+        line-height: 1.8em;
+    }
+
+    .post-toc .post-toc-content ul ul {
+        padding-left: 15px;
+        display: none;
+    }
+
+    @media print,
+    screen and (max-width:1057px) {
+        .post-toc {
+            display: none;
+        }
+    }
+</style>
+<div class="post-toc" style="position: absolute; top: 188px;">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+        <nav id="TableOfContents"></nav>
+    </div>
+</div>
+<script type="text/javascript">
+    $(document).ready(function () {
+        var postToc = $(".post-toc");
+        if (postToc.length) {
+            var leftPos = $("#main").offset().left;
+            if(leftPos<220){
+                postToc.css({"width":leftPos-10,"margin-left":(0-leftPos)})
+            }
+
+            var t = postToc.offset().top - 20,
+                a = {
+                    start: {
+                        position: "absolute",
+                        top: t
+                    },
+                    process: {
+                        position: "fixed",
+                        top: 20
+                    },
+                };
+            $(window).scroll(function () {
+                var e = $(window).scrollTop();
+                e < t ? postToc.css(a.start) : postToc.css(a.process)
+            })
+        }
+    })
+</script>
+    <article class="post">
+        <header>
+            <h1 class="post-title">你还在这样写快排？</h1>
+        </header>
+        <date class="post-meta meta-date">
+            2019年4月20日
+        </date>
+        
+        <div class="post-meta">
+            <span>|</span>
+            
+            <span class="meta-category"><a href='/categories/Golang'>Golang</a></span>
+            
+            <span class="meta-category"><a href='/categories/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84'>算法与数据结构</a></span>
+            
+        </div>
+        
+        
+        <div class="post-meta">
+            <span id="busuanzi_container_page_pv">|<span id="busuanzi_value_page_pv"></span><span>
+                    阅读</span></span>
+        </div>
+        
+        
+        <div class="post-content">
+            <p>排序永远是数据结构里永恒的话题，快排、归并排序这样基于分治思想排序的提出，极大的优化了插入排序、冒泡排序这样的O(N^2)排序算法。对于这样基于分治思想的排序，都可以写成多线程算法，但在C/C++下，很少有人把快排写成多线程，因为就pthread线程库来说其实现是与内核线程1:1的模型，一方面创建与调度开销并不小，另一方面用于其线程间同步的POSIX 信号量开销也并不小，且非常不方便。但在go里就完全不一样了，N:N协程不仅开销小且调度做的非常轻便，最重要的是同步起来非常方便。</p>
+<hr>
+<p>下面我们来研究一下一个合适的多线（协）程快排到底比普通的快排快了多少</p>
+<p>机器：16GDDR4 8核i7-6700HQ</p>
+<p>先看看常规快排的性能，我们生成一千万个随机数与一亿个随机数，分别测试三组，记录每组时间（忽略每次随机产生的源数据之间的固有差异带来的影响）</p>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190420/1555742575838001.png" />
+    
+    <figcaption class="p-2 text-center">1555742575838001.png</figcaption>
+</figure></p>
+<p>三组测试结果如下</p>
+<p>一千万随机数</p>
+<p>一亿随机数</p>
+<p>第一组</p>
+<p>1.287144 s</p>
+<p>14.45144 s</p>
+<p>第二组</p>
+<p>1.264827 s</p>
+<p>14.53373 s</p>
+<p>第三组</p>
+<p>1.254869 s</p>
+<p>14.28627 s</p>
+<p>快排的稳定性当然是没有问题的，速度当然也还算可以的，下面我们开始充分利用我们的8核CPU，看看到底多线（协）程快排比常规快排快了多少。</p>
+<p><strong>多线（协）程快排思路：每次分治问题完成必须是其下两个子问题的完成，因此每次子问题完成应通过chan通知父问题，父问题在两个子问题都完成后才可通过chan通知上一级祖先（爷爷）问题</strong></p>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190420/1555745224817848.png" />
+    
+    <figcaption class="p-2 text-center">1555745224817848.png</figcaption>
+</figure></p>
+<p>我们来测一把</p>
+<p>一千万随机数</p>
+<p>一亿随机数</p>
+<p>第一组</p>
+<p>6.5759626 s</p>
+<p>oom</p>
+<p>第二组</p>
+<p>6.4370456 s</p>
+<p>oom</p>
+<p>第三组</p>
+<p>7.0409691 s</p>
+<p>oom</p>
+<p>非常尴尬，这时不仅一千万随机数的速度比普通的快排还慢了七八倍，一亿随机数更是直接内存溢出了。</p>
+<p>事实上这是很多人对于多线（协）程的应用场景理解不到位时会犯的错误，并不是多线（协）程一定就性能高，这之间的权衡就是：处理这个问题如果我用多线（协）程，带来的速度提升程度是否远远大于线（协）程调度本身的开销，如果确实远远大于，那么就适合用多线（协）程来充分利用多核。</p>
+<p>分析一下我们到底哪里存在调度的消耗会大于问题本身的耗时，不难意识到，但分治后的子问题区间只剩下少量数的时候，这是如果仍然起协程去处理分治的子问题就不合适了，因此完全可以在区间小于某一阈值时使用普通的快排去完成剩下的工作</p>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190420/1555746329875502.png" />
+    
+    <figcaption class="p-2 text-center">1555746329875502.png</figcaption>
+</figure></p>
+<p>再来测一把（10000作为阈值时经过测试后，选取的一个还算不错的平衡点，再增大会导致速度下降）</p>
+<p>一千万随机数</p>
+<p>一亿随机数</p>
+<p>第一组</p>
+<p>0.262879 s</p>
+<p>3.161468 s</p>
+<p>第二组</p>
+<p>0.272799 s</p>
+<p>3.237872 s</p>
+<p>第三组</p>
+<p>0.280205 s</p>
+<p>3.253718 s</p>
+<p>可以看到，非常快，比普通的快排提高了四倍的速度，肯定你会关心内存的消耗如何呢，答案多线（协）程快排是和普通快排几乎一样，这当然是得益于go协程的轻量与良好的设计。</p>
+<p>以后把你的快排写成多线（协）程把！</p>
+
+        </div>
+
+        
+<div class="post-archive">
+    <ul class="post-copyright">
+        <li><strong>原文作者：</strong><a rel="author" href="http://fhstack.github.io/">Fh</a></li>
+        <li style="word-break:break-all"><strong>原文链接：</strong><a href="http://fhstack.github.io/post/2019-04-20-nihuanzaizheyangxiekuaipai/">http://fhstack.github.io/post/2019-04-20-nihuanzaizheyangxiekuaipai/</a></li>
+        <li><strong>版权声明：</strong>本作品采用<a rel="license" href="https://creativecommons.org/licenses/by-nc-nd/4.0/">知识共享署名-非商业性使用-禁止演绎 4.0 国际许可协议</a>进行许可，非商业转载请注明出处（作者，原文链接），商业转载请联系作者获得授权。</li>
+    </ul>
+</div>
+<br/>
+
+
+
+        
+
+<div class="post-archive">
+    <h2>See Also</h2>
+    <ul class="listing">
+        
+        <li><a href="/post/2019-04-16-golangarrayyuslicequbie/">Golang——数组与切片的区别</a></li>
+        
+        <li><a href="/post/2019-04-15-golangnewyumake/">Golang——new与make</a></li>
+        
+        <li><a href="/post/2019-04-12-redisyuanmapouxisdskuer/">Redis源码剖析——SDS库（二）</a></li>
+        
+        <li><a href="/post/2019-04-10-redisyuanmapouxisdsku/">Redis源码剖析——SDS库（一）</a></li>
+        
+        <li><a href="/post/2019-03-30-redisyuanmapouxineicunguanlizmallocer/">Redis源码剖析——内存管理zmalloc（二）</a></li>
+        
+    </ul>
+</div>
+
+
+        <div class="post-meta meta-tags">
+            
+            没有标签
+            
+        </div>
+    </article>
+    
+    
+
+    
+    
+    <div class="post bg-white">
+      <script src="https://utteranc.es/client.js"
+            repo= "your github repo"
+            issue-term="pathname"
+            theme="github-light"
+            crossorigin="anonymous"
+            async>
+      </script>
+    </div>
+    
+</div>
+
+                    <footer id="footer">
+    <div>
+        &copy; 2021 <a href="http://fhstack.github.io/">Fh&#39;s Blog By Fh</a>
+        
+    </div>
+    <br />
+    <div>
+        <div class="github-badge">
+            <a href="https://gohugo.io/" target="_black" rel="nofollow"><span class="badge-subject">Powered by</span><span class="badge-value bg-blue">Hugo</span></a>
+        </div>
+        <div class="github-badge">
+            <a href="https://www.flysnow.org/" target="_black"><span class="badge-subject">Design by</span><span class="badge-value bg-brightgreen">飞雪无情</span></a>
+        </div>
+        <div class="github-badge">
+            <a href="https://github.com/flysnow-org/maupassant-hugo" target="_black"><span class="badge-subject">Theme</span><span class="badge-value bg-yellowgreen">Maupassant</span></a>
+        </div>
+    </div>
+</footer>
+
+
+    
+    <script type="text/javascript">
+        window.MathJax = {
+            tex2jax: {
+                inlineMath: [['$', '$']],
+                processEscapes: true
+                }
+            };
+    </script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML' async></script>
+
+<a id="rocket" href="#top"></a>
+<script type="text/javascript" src='/js/totop.js?v=0.0.0' async=""></script>
+
+
+
+    <script type="text/javascript" src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script>
+
+
+
+
+    <script src='/js/douban.js'></script>
+
+                </div>
+
+                <div id="secondary">
+    <section class="widget">
+        <form id="search" action='http://fhstack.github.io/search/' method="get" accept-charset="utf-8" target="_blank" _lpchecked="1">
+      
+      <input type="text" name="q" maxlength="20" placeholder="Search">
+      <input type="hidden" name="sitesearch" value="http://fhstack.github.io/">
+      <button type="submit" class="submit icon-search"></button>
+</form>
+    </section>
+    
+    <section class="widget">
+        <h3 class="widget-title">最近文章</h3>
+<ul class="widget-list">
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2020-06-27-sync-mapyuanmayuedubiji/" title="sync.Map源码阅读笔记">sync.Map源码阅读笔记</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2020-06-02-quic/" title="QUIC">QUIC</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-06-17-redisyuanmapouxidicter/" title="Redis源码剖析——dict（二）">Redis源码剖析——dict（二）</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-06-14-redisyuanmapouxidict/" title="Redis源码剖析——dict（一）">Redis源码剖析——dict（一）</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-06-11-redisyuanmapouxiintset/" title="Redis源码剖析——intset">Redis源码剖析——intset</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-05-12-redisyuanmapouxihyperloglog/" title="Redis源码剖析——HyperLogLog">Redis源码剖析——HyperLogLog</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-05-08-redisyuanmapouxitiaobiaosan/" title="Redis源码剖析——跳表（三）">Redis源码剖析——跳表（三）</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-05-05-redisyuanmapouxitiaobiaoer/" title="Redis源码剖析——跳表（二）">Redis源码剖析——跳表（二）</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-05-03-redisyuanmapouxitiaobiaoyi/" title="Redis源码剖析——跳表（一）">Redis源码剖析——跳表（一）</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-04-20-nihuanzaizheyangxiekuaipai/" title="你还在这样写快排？">你还在这样写快排？</a>
+    </li>
+    
+</ul>
+    </section>
+
+    
+
+    <section class="widget">
+        <h3 class="widget-title"><a href='/categories/'>分类</a></h3>
+<ul class="widget-list">
+    
+    <li><a href="http://fhstack.github.io/categories/C/C&#43;&#43;/">C/C&#43;&#43; (1)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/Golang/">Golang (6)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/linux/">linux (3)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/%E6%9D%82%E8%AE%B0/">杂记 (1)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB/">源码阅读 (17)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/">算法与数据结构 (2)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/%E7%BD%91%E7%BB%9C/">网络 (1)</a></li>
+    
+</ul>
+    </section>
+
+    <section class="widget">
+        <h3 class="widget-title"><a href='/tags/'>标签</a></h3>
+<div class="tagcloud">
+    
+</div>
+    </section>
+
+    
+<section class="widget">
+    <h3 class="widget-title">友情链接</h3>
+    <ul class="widget-list">
+        
+        <li>
+            <a target="_blank" href="https://www.github.com/fhstack" title="我的Github">我的Githhub</a>
+        </li>
+        
+    </ul>
+</section>
+
+
+    <section class="widget">
+        <h3 class="widget-title">其它</h3>
+        <ul class="widget-list">
+            <li><a href="http://fhstack.github.io/index.xml">文章 RSS</a></li>
+        </ul>
+    </section>
+</div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

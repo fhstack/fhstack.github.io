@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Posts on Fh&#39;s Blog</title>
+    <link>http://fhstack.github.io/post/</link>
+    <description>Recent content in Posts on Fh&#39;s Blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-CN</language>
+    <lastBuildDate>Fri, 26 Jun 2020 16:38:05 +0000</lastBuildDate><atom:link href="http://fhstack.github.io/post/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>sync.Map源码阅读笔记</title>
+      <link>http://fhstack.github.io/post/2020-06-27-sync-mapyuanmayuedubiji/</link>
+      <pubDate>Fri, 26 Jun 2020 16:38:05 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/post/2020-06-27-sync-mapyuanmayuedubiji/</guid>
+      <description>写在前面的碎碎念 Go的原生map不是并发安全的，多个协程并发读写map被竞态检测到时会直接panic掉整个进程，recover都不能cover住&amp;hellip;因此在写代码时，只要关于并发读写map都要谨记并发安全，印象中之前组里有出过这样的bug，凌晨左右发现服务莫名其妙挂掉。</description>
+    </item>
+    
+    <item>
+      <title>QUIC</title>
+      <link>http://fhstack.github.io/post/2020-06-02-quic/</link>
+      <pubDate>Tue, 02 Jun 2020 03:02:05 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/post/2020-06-02-quic/</guid>
+      <description>背景与QUIC现状 最近因为毕设需要，详细研究了一下Google的QUIC。 我主要看的是Google官方团队的一篇2017年的论文与初版的QUIC规范文档。根绝Google自己的数据，Google有30%的对外流量已经在使用QUIC，因此根据Google的用户量，可以估计互联网上有</description>
+    </item>
+    
+    <item>
+      <title>Redis源码剖析——dict（二）</title>
+      <link>http://fhstack.github.io/post/2019-06-17-redisyuanmapouxidicter/</link>
+      <pubDate>Mon, 17 Jun 2019 07:40:38 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/post/2019-06-17-redisyuanmapouxidicter/</guid>
+      <description>下面要探究的核心问题是dict中为何要用两个哈希表，这两个哈希表给Redis的dict带来了什么好处？我们从dict最开始的创建、插入、迭代器、以及删除等全过程来剖析 （ps: 下面有时候会把dict和字典混说） 哈希函数 我们不妨先看看Redis中哈希用的哈希函数 1555486330514822.png 这是比较常用的Mur</description>
+    </item>
+    
+    <item>
+      <title>Redis源码剖析——dict（一）</title>
+      <link>http://fhstack.github.io/post/2019-06-14-redisyuanmapouxidict/</link>
+      <pubDate>Fri, 14 Jun 2019 14:29:11 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/post/2019-06-14-redisyuanmapouxidict/</guid>
+      <description>dict结构根本上是为了提供高效的搜索映射，因此红黑树、AVL树、哈希表都可以用来实现字典结构，不过树形结构怎么都不可能达到常数级别的时间复杂度，因此用树形结构来实现dict已经比较少见了，不过C++STL库中map的实现仍然是红黑树，红黑树也自有优点，在实现字典结构的同时还可以</description>
+    </item>
+    
+    <item>
+      <title>Redis源码剖析——intset</title>
+      <link>http://fhstack.github.io/post/2019-06-11-redisyuanmapouxiintset/</link>
+      <pubDate>Tue, 11 Jun 2019 14:46:55 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/post/2019-06-11-redisyuanmapouxiintset/</guid>
+      <description>intset是Redis源码里一个比较基础的组件，和非常多的部分有耦合，因此也就不单独谈其所关联的部分了。总的来说intset实现了这样一个东西：一个多编码的顺序整型数据存储结构。（以下代码位于intset.c与intset.h） 其基本结构非常简单 1560263505996778.png encoding字段支持的整型</description>
+    </item>
+    
+    <item>
+      <title>Redis源码剖析——HyperLogLog</title>
+      <link>http://fhstack.github.io/post/2019-05-12-redisyuanmapouxihyperloglog/</link>
+      <pubDate>Sun, 12 May 2019 14:37:56 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/post/2019-05-12-redisyuanmapouxihyperloglog/</guid>
+      <description>HyperLogLog算法核心原理 写在前面&amp;hellip; 阅读Redis的源码你会发现，里面有个略微奇怪的结构，叫做HyperLogLog。大多数人第一反应这个可能是个日志相关的东西？实际上是Redis里相对复杂的一个非传统算法，其可被用于海量数据的统计。 上次写这篇文章是两年前了</description>
+    </item>
+    
+    <item>
+      <title>Redis源码剖析——跳表（三）</title>
+      <link>http://fhstack.github.io/post/2019-05-08-redisyuanmapouxitiaobiaosan/</link>
+      <pubDate>Wed, 08 May 2019 08:12:03 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/post/2019-05-08-redisyuanmapouxitiaobiaosan/</guid>
+      <description>Redis跳表中每个节点的span实际上是个非常巧妙的设计，但是关于span的部分阅读起来不是很容易，因为这种在数据结构上做的创新行为往往不能第一眼就理解。在跳表的插入删除操作，可以看到有很多部分都在对span进行调整，span是一个重要且不能绕过的东西，那么span到底是用来干</description>
+    </item>
+    
+    <item>
+      <title>Redis源码剖析——跳表（二）</title>
+      <link>http://fhstack.github.io/post/2019-05-05-redisyuanmapouxitiaobiaoer/</link>
+      <pubDate>Sun, 05 May 2019 14:31:55 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/post/2019-05-05-redisyuanmapouxitiaobiaoer/</guid>
+      <description>下面进入跳表的具体实现，以下代码位于z_set.c 先忽略插入与删除中对span相关的调整操作，下一篇会专门对span进行解释后再继续跳表的后续剖析 以下是两个基本的创建函数 1557066756673388.png 创建一个跳表节点，不多说 1557066868184478.png 创建整个跳表。设置跳表的初始最大层高为1，长度为0。创建一个score为0，sds</description>
+    </item>
+    
+    <item>
+      <title>Redis源码剖析——跳表（一）</title>
+      <link>http://fhstack.github.io/post/2019-05-03-redisyuanmapouxitiaobiaoyi/</link>
+      <pubDate>Thu, 02 May 2019 17:00:04 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/post/2019-05-03-redisyuanmapouxitiaobiaoyi/</guid>
+      <description>前言 从跳表（SkipList）开始，离Redis用户层面就比较近了，Redis用户层面的五个基本数据类型中有序集合zset的实现主要基于三个部分：跳表、dict、ziplist。三者搭配的很完美，其中dict我们已经研究过，至于ziplist则是压缩列表，关于ziplist还会在</description>
+    </item>
+    
+    <item>
+      <title>你还在这样写快排？</title>
+      <link>http://fhstack.github.io/post/2019-04-20-nihuanzaizheyangxiekuaipai/</link>
+      <pubDate>Sat, 20 Apr 2019 06:35:40 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/post/2019-04-20-nihuanzaizheyangxiekuaipai/</guid>
+      <description>排序永远是数据结构里永恒的话题，快排、归并排序这样基于分治思想排序的提出，极大的优化了插入排序、冒泡排序这样的O(N^2)排序算法。对于这样基于分治思想的排序，都可以写成多线程算法，但在C/C++下，很少有人把快排写成多线程，因为就pthread线程库来说其实现是与内核线程1:1</description>
+    </item>
+    
+    <item>
+      <title>Golang——数组与切片的区别</title>
+      <link>http://fhstack.github.io/post/2019-04-16-golangarrayyuslicequbie/</link>
+      <pubDate>Tue, 16 Apr 2019 09:27:31 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/post/2019-04-16-golangarrayyuslicequbie/</guid>
+      <description>在Golang中顺序容器有两种，一种是普通的数组，一种是切片。 数组(array) 数组创建方式分为两种，一种是通过字面值，一种是通过new 1555406409236252.png 结果 1555406374767018.png 首先注意到，数组在创建的时候必须是在[ ]中指明了元素个数，或者使用[&amp;hellip;]结合{1, 2, 3}来创建也是可以的，因为这样也算是定</description>
+    </item>
+    
+    <item>
+      <title>Golang——new与make</title>
+      <link>http://fhstack.github.io/post/2019-04-15-golangnewyumake/</link>
+      <pubDate>Mon, 15 Apr 2019 14:44:44 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/post/2019-04-15-golangnewyumake/</guid>
+      <description>在go中要主动把变量定义在堆上只有这两中方法，make与new，二者间的区别是非常大的。 (ps: 为何要强调是主动呢？因为go会做逃逸分析，编译器会帮你去最终哪些变量会放在堆上，因此在go中是不需要像C/C++一样关心变量的开辟位置的） new go中的new与其他语言中的new语义不一样，C+</description>
+    </item>
+    
+    <item>
+      <title>Redis源码剖析——SDS库（二）</title>
+      <link>http://fhstack.github.io/post/2019-04-12-redisyuanmapouxisdskuer/</link>
+      <pubDate>Fri, 12 Apr 2019 10:42:34 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/post/2019-04-12-redisyuanmapouxisdskuer/</guid>
+      <description>上一篇我们熟悉了SDS字符串的基本结构以及一些基本方法，我们接下来继续深入看一些方法比较重要的方法，别忘了我们的目的是为了找出SDS到底比glibc的字符串好在哪儿。 具体实现 以下代码位于sds.c 1555073913731569.png 首先说明一下这个工具函数，该函数会根据参数string_size来判断该strin</description>
+    </item>
+    
+    <item>
+      <title>Redis源码剖析——SDS库（一）</title>
+      <link>http://fhstack.github.io/post/2019-04-10-redisyuanmapouxisdsku/</link>
+      <pubDate>Wed, 10 Apr 2019 15:28:10 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/post/2019-04-10-redisyuanmapouxisdsku/</guid>
+      <description>SDS是一个C的动态字符串库，即1554909660672013.png redis抛弃了glibc的字符串库，自己实现了一个更好的字符串库，为什么要造这个轮子，SDS比起glibc的一套更好在哪儿？这就是我们要探究的核心问题。（以下代码位于sds.h） SDS字符串的类型很简单 1554909827468057.png 当</description>
+    </item>
+    
+    <item>
+      <title>Redis源码剖析——内存管理zmalloc（二）</title>
+      <link>http://fhstack.github.io/post/2019-03-30-redisyuanmapouxineicunguanlizmallocer/</link>
+      <pubDate>Sat, 30 Mar 2019 09:28:31 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/post/2019-03-30-redisyuanmapouxineicunguanlizmallocer/</guid>
+      <description>开始进入zmalloc的实现，以下代码位于zmalloc.c 1553937439992626.png 位于最开头的是zlibc_free，注释里讲得很明白，在包含zmalloc.h之前，先定义zlibc_free并且包含glibc中的stdlib.h，这样可以给我们提供了至少glibc的free实现，如果zmalloc</description>
+    </item>
+    
+    <item>
+      <title>Redis源码剖析——内存管理zmalloc（一）</title>
+      <link>http://fhstack.github.io/post/2019-03-30-redisyuanmapouxineicunguanlizmalloc/</link>
+      <pubDate>Sat, 30 Mar 2019 07:30:28 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/post/2019-03-30-redisyuanmapouxineicunguanlizmalloc/</guid>
+      <description>犹记得当年学习C++的时候看STL的源码，侯捷的一个观点让我深以为然，在他的源码剖析中，空间配置器是放在最开头讲，很多人都不注意内存管理部分，而内存管理模块一般都不会耦合其他模块，所以即使你一直不看内存管理模块的实现也不影响对其他模块的研究，但你却会发现内存管理模块绝对是贯穿所有</description>
+    </item>
+    
+    <item>
+      <title>Redis源码剖析——原子操作</title>
+      <link>http://fhstack.github.io/post/2019-03-30-redisyuanmapouxiyuanzicaozuo/</link>
+      <pubDate>Sat, 30 Mar 2019 04:41:30 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/post/2019-03-30-redisyuanmapouxiyuanzicaozuo/</guid>
+      <description>我们知道Redis的所有操作都是原子操作，无论是Get还是ISMEMBER、Set等操作，全部都可以放心使用，其内部保证了操作的原子性，Redis中最底层中基本原子操作的封装，其实并不麻烦，反而相当简洁，这部分代码位于atomicvar.h中。 总共就是这三个，事实上他们都是宏： 1553919915556723.png</description>
+    </item>
+    
+    <item>
+      <title>Redis源码剖析——ae（二）</title>
+      <link>http://fhstack.github.io/post/2019-03-25-redisyuanmapouxiaeer/</link>
+      <pubDate>Mon, 25 Mar 2019 14:10:06 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/post/2019-03-25-redisyuanmapouxiaeer/</guid>
+      <description>开始进入ae事件库的实现，这部分代码位于ae.c 1553518087124571.png 同样，没有任何外部库的依赖，其中config.h配置头文件会决定IO多路复用的选取，如下 1553518189574268.png 此处按照性能降序排列，这四种实现都是对系统IO多路复用库API进行一定程度的封装，其中kqueue和evport用于FreeBSD和Sola</description>
+    </item>
+    
+    <item>
+      <title>Redis源码剖析——ae（一）</title>
+      <link>http://fhstack.github.io/post/2019-03-25-redisyuanmapouxiaeyi/</link>
+      <pubDate>Mon, 25 Mar 2019 09:18:05 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/post/2019-03-25-redisyuanmapouxiaeyi/</guid>
+      <description>ae是一个Redis实现的事件库，为什么叫ae，如下 1553501010670582.png 一个事件库，又是Redis喜欢的命名方式，那么我们干脆也称其为ae事件库。 这个事件库非常的小巧并且精致，为什么这么说呢，因为它几乎毫无外部依赖，完全原生的实现，对于不同的系统IO多路复用都有一套最高效的实现：对于Solaris</description>
+    </item>
+    
+    <item>
+      <title>Redis源码剖析——adlist</title>
+      <link>http://fhstack.github.io/post/2019-03-24-redisyuanmapouxiadlist/</link>
+      <pubDate>Sun, 24 Mar 2019 10:17:11 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/post/2019-03-24-redisyuanmapouxiadlist/</guid>
+      <description>adlist是一个普通的双向链表 为什么叫adlist？ 1553417242987884.png redis作者算是首创了这种命名风格，axxxxx，后面我们还会看到类似的文件命名方式，意即“一个xxxxx”。 虽然是普通的链表，但Redis的adlist绝对也是C下双向链表的实现范式。 基本结构和方法的原型声明与定义(ad</description>
+    </item>
+    
+    <item>
+      <title>Redis源码剖析——概览</title>
+      <link>http://fhstack.github.io/post/2019-03-23-redisyuanmapouxigailan/</link>
+      <pubDate>Sat, 23 Mar 2019 11:25:23 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/post/2019-03-23-redisyuanmapouxigailan/</guid>
+      <description>Redis至今刚好十年，其优秀的性能与高可用性综合起来可以说是目前最优秀的KV数据库，Redis被广泛用于各种缓存场景 个人认为以下是的Redis的核心优势 单机每秒十万高并发（官方数据） 操作的原生原子性 毫无外部库依赖，源码使用纯粹干净的ANSI C编写 丰富的数据结构可胜任几乎所有业务</description>
+    </item>
+    
+    <item>
+      <title>fork后发生了什么——文件篇</title>
+      <link>http://fhstack.github.io/post/2019-03-22-forkhoufashengleshenmewenjianpian/</link>
+      <pubDate>Fri, 22 Mar 2019 06:36:51 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/post/2019-03-22-forkhoufashengleshenmewenjianpian/</guid>
+      <description>首先思考一个问题，我们知道，fork函数会复制父进程的所有打开的文件描述符给子进程（vfork不会复制），对于父进程打开的所有文件，子进程也可以通过句柄值相同的文件描述符进行读写。那么，父子进程同时操作一个文件，这个过程是并行独立，还是互相影响？父子进程同时操作一个文件时，是什么</description>
+    </item>
+    
+    <item>
+      <title>fork后发生了什么——内存篇</title>
+      <link>http://fhstack.github.io/post/2019-03-16-forkhoufashengleshenmeneicunpian/</link>
+      <pubDate>Sat, 16 Mar 2019 10:23:17 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/post/2019-03-16-forkhoufashengleshenmeneicunpian/</guid>
+      <description>fork出来的子进程完全拷贝了父进程的地址空间，其中自然就包括了数据段、栈、堆等，我们常用的一种方式是：在fork出来的子进程中调exec函数族来进行后续工作，exec函数族本质上都是execve系统调用，这个函数族会丢弃现存的代码段，并构建新的数据段、栈、堆。在这种背景下，fo</description>
+    </item>
+    
+    <item>
+      <title>fork后发生了什么——执行流篇</title>
+      <link>http://fhstack.github.io/post/2019-03-16-forkhoufashengleshenme/</link>
+      <pubDate>Sat, 16 Mar 2019 08:56:20 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/post/2019-03-16-forkhoufashengleshenme/</guid>
+      <description>首先我们先从这个最基本的问题开始: fork为什么&amp;quot;好像&amp;quot;返回了两次? 确实只能说好像，因为函数的栈帧上是不可能两个返回动作的，汇编层面决定了压栈出栈的动作值必须是成对的，一个函数永远都只可能返回一次。有两个返回只是表象，执行流被分成两份同样也只是表象，那么本质上</description>
+    </item>
+    
+    <item>
+      <title>知道这个坑，还是踩了</title>
+      <link>http://fhstack.github.io/post/2019-03-13-zhidaozhegekenghuanshicaile/</link>
+      <pubDate>Wed, 13 Mar 2019 03:28:35 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/post/2019-03-13-zhidaozhegekenghuanshicaile/</guid>
+      <description># 不要把全局变量放在任何 &amp;ldquo;:=&amp;ldquo;后面！！！ * * * 把Db作为全局变量，然后在init中Open的时候因为处理err，于是就 Db, err := sql.Open(&amp;ldquo;mysql&amp;rdquo;, dataSource) 结果再测的时候 ![][1] 想了半天怎么会访问非法内存的，后来就想起来了effective go上讲过这个坑，:=每次都会新创建并覆盖上层的</description>
+    </item>
+    
+    <item>
+      <title>golang1.4以上版本安装问题</title>
+      <link>http://fhstack.github.io/post/2019-03-05-golang1-4yishangbanbenanzhuangwenti/</link>
+      <pubDate>Tue, 05 Mar 2019 14:29:14 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/post/2019-03-05-golang1-4yishangbanbenanzhuangwenti/</guid>
+      <description>golang在1.4之前是由gcc进行语言源码的编译，在1.5后golang实现自举，因此也专门有了一个1.4-bootstrap版本，用来编译golang1.4后的版本。那么也就是说面，1.4版本之后的版本必须先配置1.4的go环境。 墙无法访问golang.org，需要去国内的</description>
+    </item>
+    
+    <item>
+      <title>main函数是C程序执行的入口吗？</title>
+      <link>http://fhstack.github.io/post/2019-03-03-mainhanshushicchengxuzhixingderukouma/</link>
+      <pubDate>Sun, 03 Mar 2019 15:47:45 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/post/2019-03-03-mainhanshushicchengxuzhixingderukouma/</guid>
+      <description>当然不是，我们知道，在C中，我们的可执行程序最后是通过链接后来生成的，而链接过程实际上有大量的汇编好的C库二进制文件参与进来，如ctr1.o、crt2.o等。因此最终的可执行程序中，除了我们编写的C代码以外，还有大量的C库文件参与了最终链接，并包含在最终的可执行文件中。 这个“组装</description>
+    </item>
+    
+    <item>
+      <title>感谢开源</title>
+      <link>http://fhstack.github.io/post/2019-02-20-ganxiekaiyuan/</link>
+      <pubDate>Tue, 19 Feb 2019 16:00:10 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/post/2019-02-20-ganxiekaiyuan/</guid>
+      <description>之前在CSDN上写博客，但实在觉得那上面没有一个纯粹的技术环境，整个页面有三分之一是垃圾广告（当然不能否定CSDN为我国it早期技术文档（?）），实在是不想在那儿写了。 一直准备把自己的博客弄好，无奈一直没有抽出一个这样的时间来，正好今天下午需求做完了，就把这件事干了，前前后后折腾</description>
+    </item>
+    
+  </channel>
+</rss>

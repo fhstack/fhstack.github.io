@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <meta name="referrer" content="no-referrer-when-downgrade">
+    
+
+    <title>sync.Map源码阅读笔记 | Fh&#39;s Blog</title>
+    <meta property="og:title" content="sync.Map源码阅读笔记 - Fh&#39;s Blog">
+    <meta property="og:type" content="article">
+        
+    <meta property="article:published_time" content='2020-06-26T16:38:05&#43;08:00'>
+        
+        
+    <meta property="article:modified_time" content='2020-06-26T16:38:05&#43;08:00'>
+        
+    <meta name="Keywords" content="golang,go语言,redis,mysql,mongo,kafka,rocketMQ,消息中间件,分布一致性,算法,操作系统">
+    <meta name="description" content="sync.Map源码阅读笔记">
+        <meta name="author" content="feihao">
+        
+    <meta property="og:url" content="http://fhstack.github.io/post/2020-06-27-sync-mapyuanmayuedubiji/">
+    <link rel="shortcut icon" href='/favicon.ico'  type="image/x-icon">
+
+    <link rel="stylesheet" href='/css/normalize.css'>
+    <link rel="stylesheet" href='/css/style.css'>
+    <script type="text/javascript" src="//cdn.bootcdn.net/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+    
+    
+    
+    
+    
+    
+        <link rel="stylesheet" href='/css/douban.css'>
+    
+        <link rel="stylesheet" href='/css/other.css'>
+    
+</head>
+
+
+<body>
+    <header id="header" class="clearfix">
+    <div class="container">
+        <div class="col-group">
+            <div class="site-name ">
+                
+                    <a id="logo" href="http://fhstack.github.io/">
+                        Fh&#39;s Blog
+                    </a>
+                
+                <p class="description">已识乾坤大，犹怜草木青</p>
+            </div>
+            <div>
+                <nav id="nav-menu" class="clearfix">
+                    <a class="current" href="http://fhstack.github.io/">首页</a>
+                    
+                    <a  href="http://fhstack.github.io/tools/" title="工具">工具</a>
+                    
+                    <a  href="http://fhstack.github.io/archives/" title="归档">归档</a>
+                    
+                    <a  href="http://fhstack.github.io/about/" title="关于">关于</a>
+                    
+                </nav>
+            </div>
+        </div>
+    </div>
+</header>
+
+    <div id="body">
+        <div class="container">
+            <div class="col-group">
+
+                <div class="col-8" id="main">
+                    
+<div class="res-cons">
+    <style type="text/css">
+    .post-toc {
+        position: fixed;
+        width: 200px;
+        margin-left: -210px;
+        padding: 5px 10px;
+        font-family: Athelas, STHeiti, Microsoft Yahei, serif;
+        font-size: 12px;
+        border: 1px solid rgba(0, 0, 0, .07);
+        border-radius: 5px;
+        background-color: rgba(255, 255, 255, 0.98);
+        background-clip: padding-box;
+        -webkit-box-shadow: 1px 1px 2px rgba(0, 0, 0, .125);
+        box-shadow: 1px 1px 2px rgba(0, 0, 0, .125);
+        word-wrap: break-word;
+        white-space: nowrap;
+        -webkit-box-sizing: border-box;
+        box-sizing: border-box;
+        z-index: 999;
+        cursor: pointer;
+        max-height: 70%;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+
+    .post-toc .post-toc-title {
+        width: 100%;
+        margin: 0 auto;
+        font-size: 20px;
+        font-weight: 400;
+        text-transform: uppercase;
+        text-align: center;
+    }
+
+    .post-toc .post-toc-content {
+        font-size: 15px;
+    }
+
+    .post-toc .post-toc-content>nav>ul {
+        margin: 10px 0;
+    }
+
+    .post-toc .post-toc-content ul {
+        padding-left: 20px;
+        list-style: square;
+        margin: 0.5em;
+        line-height: 1.8em;
+    }
+
+    .post-toc .post-toc-content ul ul {
+        padding-left: 15px;
+        display: none;
+    }
+
+    @media print,
+    screen and (max-width:1057px) {
+        .post-toc {
+            display: none;
+        }
+    }
+</style>
+<div class="post-toc" style="position: absolute; top: 188px;">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+        <nav id="TableOfContents"></nav>
+    </div>
+</div>
+<script type="text/javascript">
+    $(document).ready(function () {
+        var postToc = $(".post-toc");
+        if (postToc.length) {
+            var leftPos = $("#main").offset().left;
+            if(leftPos<220){
+                postToc.css({"width":leftPos-10,"margin-left":(0-leftPos)})
+            }
+
+            var t = postToc.offset().top - 20,
+                a = {
+                    start: {
+                        position: "absolute",
+                        top: t
+                    },
+                    process: {
+                        position: "fixed",
+                        top: 20
+                    },
+                };
+            $(window).scroll(function () {
+                var e = $(window).scrollTop();
+                e < t ? postToc.css(a.start) : postToc.css(a.process)
+            })
+        }
+    })
+</script>
+    <article class="post">
+        <header>
+            <h1 class="post-title">sync.Map源码阅读笔记</h1>
+        </header>
+        <date class="post-meta meta-date">
+            2020年6月26日
+        </date>
+        
+        <div class="post-meta">
+            <span>|</span>
+            
+            <span class="meta-category"><a href='/categories/Golang'>Golang</a></span>
+            
+            <span class="meta-category"><a href='/categories/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB'>源码阅读</a></span>
+            
+        </div>
+        
+        
+        <div class="post-meta">
+            <span id="busuanzi_container_page_pv">|<span id="busuanzi_value_page_pv"></span><span>
+                    阅读</span></span>
+        </div>
+        
+        
+        <div class="post-content">
+            <h1 id="写在前面的碎碎念">写在前面的碎碎念</h1>
+<p>Go的原生map不是并发安全的，多个协程并发读写map被竞态检测到时会直接panic掉整个进程，recover都不能cover住&hellip;因此在写代码时，只要关于并发读写map都要谨记并发安全，印象中之前组里有出过这样的bug，凌晨左右发现服务莫名其妙挂掉。</p>
+<p>关于map的最简单并发安全处理就是暴力加锁了，互斥锁，读写锁都可以，当然能用，但是锁粒度在某些性能要求较高的场景下显然的问题。</p>
+<p>Go官方不愿意把原生的map做复杂这点，个人认为是对的，因为map这种离散存储数据的结构，要做成并发安全会过于复杂（关于这点看看map源码可以知道，Go的map中间操作非常多），很多时候我们也不需要一个并发安全的map，同时，原生库若是发布后出问题了大家也会很尴尬。</p>
+<p>于是Go官方基于读写分离设计并实现了一个并发安全的<a href="https://golang.org/pkg/sync/#Map" title="sync.Map">sync.Map</a>，其主要对满足以下任一条件的场景进行优化（相比起简单加锁）：</p>
+<ul>
+<li>读多写少</li>
+<li>多个协程读写不同的key集合</li>
+</ul>
+<p><strong>这两个场景之外的任何情况，sync.Map的性能都未必比暴力加锁要好，建议不要滥用sync.Map。</strong></p>
+<h1 id="实现原理">实现原理</h1>
+<p>sync.Map的实现原理有很多优秀文章了，以下是我自己仔细看过的两篇，都讲的非常清楚，附上链接以供阅读：<br>
+<a href="https://juejin.im/post/5d36a7cbf265da1bb47da444" title="由浅入深聊聊Golang的sync.Map">由浅入深聊聊Golang的sync.Map</a>
+<a href="https://lvbay.github.io/2018/03/31/golang-sync-Map%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86/" title="golang-sync.Map实现原理">golang-sync.Map实现原理</a></p>
+<blockquote>
+<p>有一点是这些文章都没讲到的，且非常容易让人不理解。
+sync.Map的readOnly为何不用加锁。本质原因是：原生map并发读写不安全，但是纯并发读本来就是安全的。</p>
+</blockquote>
+
+        </div>
+
+        
+<div class="post-archive">
+    <ul class="post-copyright">
+        <li><strong>原文作者：</strong><a rel="author" href="http://fhstack.github.io/">Fh</a></li>
+        <li style="word-break:break-all"><strong>原文链接：</strong><a href="http://fhstack.github.io/post/2020-06-27-sync-mapyuanmayuedubiji/">http://fhstack.github.io/post/2020-06-27-sync-mapyuanmayuedubiji/</a></li>
+        <li><strong>版权声明：</strong>本作品采用<a rel="license" href="https://creativecommons.org/licenses/by-nc-nd/4.0/">知识共享署名-非商业性使用-禁止演绎 4.0 国际许可协议</a>进行许可，非商业转载请注明出处（作者，原文链接），商业转载请联系作者获得授权。</li>
+    </ul>
+</div>
+<br/>
+
+
+
+        
+
+<div class="post-archive">
+    <h2>See Also</h2>
+    <ul class="listing">
+        
+        <li><a href="/post/2020-06-02-quic/">QUIC</a></li>
+        
+        <li><a href="/post/2019-06-17-redisyuanmapouxidicter/">Redis源码剖析——dict（二）</a></li>
+        
+        <li><a href="/post/2019-06-14-redisyuanmapouxidict/">Redis源码剖析——dict（一）</a></li>
+        
+        <li><a href="/post/2019-06-11-redisyuanmapouxiintset/">Redis源码剖析——intset</a></li>
+        
+        <li><a href="/post/2019-05-12-redisyuanmapouxihyperloglog/">Redis源码剖析——HyperLogLog</a></li>
+        
+    </ul>
+</div>
+
+
+        <div class="post-meta meta-tags">
+            
+            没有标签
+            
+        </div>
+    </article>
+    
+    
+
+    
+    
+    <div class="post bg-white">
+      <script src="https://utteranc.es/client.js"
+            repo= "your github repo"
+            issue-term="pathname"
+            theme="github-light"
+            crossorigin="anonymous"
+            async>
+      </script>
+    </div>
+    
+</div>
+
+                    <footer id="footer">
+    <div>
+        &copy; 2021 <a href="http://fhstack.github.io/">Fh&#39;s Blog By Fh</a>
+        
+    </div>
+    <br />
+    <div>
+        <div class="github-badge">
+            <a href="https://gohugo.io/" target="_black" rel="nofollow"><span class="badge-subject">Powered by</span><span class="badge-value bg-blue">Hugo</span></a>
+        </div>
+        <div class="github-badge">
+            <a href="https://www.flysnow.org/" target="_black"><span class="badge-subject">Design by</span><span class="badge-value bg-brightgreen">飞雪无情</span></a>
+        </div>
+        <div class="github-badge">
+            <a href="https://github.com/flysnow-org/maupassant-hugo" target="_black"><span class="badge-subject">Theme</span><span class="badge-value bg-yellowgreen">Maupassant</span></a>
+        </div>
+    </div>
+</footer>
+
+
+    
+    <script type="text/javascript">
+        window.MathJax = {
+            tex2jax: {
+                inlineMath: [['$', '$']],
+                processEscapes: true
+                }
+            };
+    </script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML' async></script>
+
+<a id="rocket" href="#top"></a>
+<script type="text/javascript" src='/js/totop.js?v=0.0.0' async=""></script>
+
+
+
+    <script type="text/javascript" src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script>
+
+
+
+
+    <script src='/js/douban.js'></script>
+
+                </div>
+
+                <div id="secondary">
+    <section class="widget">
+        <form id="search" action='http://fhstack.github.io/search/' method="get" accept-charset="utf-8" target="_blank" _lpchecked="1">
+      
+      <input type="text" name="q" maxlength="20" placeholder="Search">
+      <input type="hidden" name="sitesearch" value="http://fhstack.github.io/">
+      <button type="submit" class="submit icon-search"></button>
+</form>
+    </section>
+    
+    <section class="widget">
+        <h3 class="widget-title">最近文章</h3>
+<ul class="widget-list">
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2020-06-27-sync-mapyuanmayuedubiji/" title="sync.Map源码阅读笔记">sync.Map源码阅读笔记</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2020-06-02-quic/" title="QUIC">QUIC</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-06-17-redisyuanmapouxidicter/" title="Redis源码剖析——dict（二）">Redis源码剖析——dict（二）</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-06-14-redisyuanmapouxidict/" title="Redis源码剖析——dict（一）">Redis源码剖析——dict（一）</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-06-11-redisyuanmapouxiintset/" title="Redis源码剖析——intset">Redis源码剖析——intset</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-05-12-redisyuanmapouxihyperloglog/" title="Redis源码剖析——HyperLogLog">Redis源码剖析——HyperLogLog</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-05-08-redisyuanmapouxitiaobiaosan/" title="Redis源码剖析——跳表（三）">Redis源码剖析——跳表（三）</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-05-05-redisyuanmapouxitiaobiaoer/" title="Redis源码剖析——跳表（二）">Redis源码剖析——跳表（二）</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-05-03-redisyuanmapouxitiaobiaoyi/" title="Redis源码剖析——跳表（一）">Redis源码剖析——跳表（一）</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-04-20-nihuanzaizheyangxiekuaipai/" title="你还在这样写快排？">你还在这样写快排？</a>
+    </li>
+    
+</ul>
+    </section>
+
+    
+
+    <section class="widget">
+        <h3 class="widget-title"><a href='/categories/'>分类</a></h3>
+<ul class="widget-list">
+    
+    <li><a href="http://fhstack.github.io/categories/C/C&#43;&#43;/">C/C&#43;&#43; (1)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/Golang/">Golang (6)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/linux/">linux (3)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/%E6%9D%82%E8%AE%B0/">杂记 (1)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB/">源码阅读 (17)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/">算法与数据结构 (2)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/%E7%BD%91%E7%BB%9C/">网络 (1)</a></li>
+    
+</ul>
+    </section>
+
+    <section class="widget">
+        <h3 class="widget-title"><a href='/tags/'>标签</a></h3>
+<div class="tagcloud">
+    
+</div>
+    </section>
+
+    
+<section class="widget">
+    <h3 class="widget-title">友情链接</h3>
+    <ul class="widget-list">
+        
+        <li>
+            <a target="_blank" href="https://www.github.com/fhstack" title="我的Github">我的Githhub</a>
+        </li>
+        
+    </ul>
+</section>
+
+
+    <section class="widget">
+        <h3 class="widget-title">其它</h3>
+        <ul class="widget-list">
+            <li><a href="http://fhstack.github.io/index.xml">文章 RSS</a></li>
+        </ul>
+    </section>
+</div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

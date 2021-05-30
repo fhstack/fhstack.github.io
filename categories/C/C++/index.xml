@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>C/C&#43;&#43; on Fh&#39;s Blog</title>
+    <link>http://fhstack.github.io/categories/C/C&#43;&#43;/</link>
+    <description>Recent content in C/C&#43;&#43; on Fh&#39;s Blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-CN</language><atom:link href="http://fhstack.github.io/categories/C/C++/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>main函数是C程序执行的入口吗？</title>
+      <link>http://fhstack.github.io/post/2019-03-03-mainhanshushicchengxuzhixingderukouma/</link>
+      <pubDate>Sun, 03 Mar 2019 15:47:45 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/post/2019-03-03-mainhanshushicchengxuzhixingderukouma/</guid>
+      <description>当然不是，我们知道，在C中，我们的可执行程序最后是通过链接后来生成的，而链接过程实际上有大量的汇编好的C库二进制文件参与进来，如ctr1.o、crt2.o等。因此最终的可执行程序中，除了我们编写的C代码以外，还有大量的C库文件参与了最终链接，并包含在最终的可执行文件中。 这个“组装</description>
+    </item>
+    
+  </channel>
+</rss>

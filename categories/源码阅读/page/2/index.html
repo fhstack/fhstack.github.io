@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <meta name="referrer" content="no-referrer-when-downgrade">
+    
+
+    <title>源码阅读 | Fh&#39;s Blog</title>
+    <meta property="og:title" content="源码阅读 - Fh&#39;s Blog">
+    <meta property="og:type" content="article">
+        
+        
+    <meta name="Keywords" content="golang,go语言,redis,mysql,mongo,kafka,rocketMQ,消息中间件,分布一致性,算法,操作系统">
+    <meta name="description" content="源码阅读">
+        
+    <meta name="author" content="Fh">
+    <meta property="og:url" content="http://fhstack.github.io/categories/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB/">
+    <link rel="shortcut icon" href='/favicon.ico'  type="image/x-icon">
+
+    <link rel="stylesheet" href='/css/normalize.css'>
+    <link rel="stylesheet" href='/css/style.css'>
+    <link rel="alternate" type="application/rss+xml" href="http://fhstack.github.io/categories/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB/index.xml" title="Fh's Blog" />
+    <script type="text/javascript" src="//cdn.bootcdn.net/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+    
+    
+    
+    
+    
+    
+        <link rel="stylesheet" href='/css/douban.css'>
+    
+        <link rel="stylesheet" href='/css/other.css'>
+    
+</head>
+
+
+<body>
+    <header id="header" class="clearfix">
+    <div class="container">
+        <div class="col-group">
+            <div class="site-name ">
+                
+                    <a id="logo" href="http://fhstack.github.io/">
+                        Fh&#39;s Blog
+                    </a>
+                
+                <p class="description">已识乾坤大，犹怜草木青</p>
+            </div>
+            <div>
+                <nav id="nav-menu" class="clearfix">
+                    <a class="" href="http://fhstack.github.io/">首页</a>
+                    
+                    <a  href="http://fhstack.github.io/tools/" title="工具">工具</a>
+                    
+                    <a  href="http://fhstack.github.io/archives/" title="归档">归档</a>
+                    
+                    <a  href="http://fhstack.github.io/about/" title="关于">关于</a>
+                    
+                </nav>
+            </div>
+        </div>
+    </div>
+</header>
+
+    <div id="body">
+        <div class="container">
+            <div class="col-group">
+
+                <div class="col-8" id="main">
+                    
+<div class="res-cons">
+    
+    <h3 class="archive-title">
+        分类
+        <span class="keyword">源码阅读</span>
+        中的文章
+    </h3>
+    
+
+    
+    <article class="post">
+        <header>
+            <h1 class="post-title">
+                <a href="http://fhstack.github.io/post/2019-03-30-redisyuanmapouxineicunguanlizmallocer/">Redis源码剖析——内存管理zmalloc（二）</a>
+            </h1>
+        </header>
+        <date class="post-meta meta-date">
+            2019年3月30日
+        </date>
+        
+        <div class="post-meta meta-category">
+            |
+            
+            <a href='/categories/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB'>源码阅读</a>
+            
+        </div>
+        
+        <div class="post-content">
+            开始进入zmalloc的实现，以下代码位于zmalloc.c 1553937439992626.png 位于最开头的是zlibc_free，注释里讲得很明白，在包含zmalloc.h之前，先定义zlibc_free并且包含glibc中的stdlib.h，这样可以给我们提供了至少glibc的free实现，如果zmalloc……
+            <p class="readmore"><a href="http://fhstack.github.io/post/2019-03-30-redisyuanmapouxineicunguanlizmallocer/">阅读全文</a></p>
+        </div>
+    </article>
+    
+    <article class="post">
+        <header>
+            <h1 class="post-title">
+                <a href="http://fhstack.github.io/post/2019-03-30-redisyuanmapouxineicunguanlizmalloc/">Redis源码剖析——内存管理zmalloc（一）</a>
+            </h1>
+        </header>
+        <date class="post-meta meta-date">
+            2019年3月30日
+        </date>
+        
+        <div class="post-meta meta-category">
+            |
+            
+            <a href='/categories/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB'>源码阅读</a>
+            
+        </div>
+        
+        <div class="post-content">
+            犹记得当年学习C++的时候看STL的源码，侯捷的一个观点让我深以为然，在他的源码剖析中，空间配置器是放在最开头讲，很多人都不注意内存管理部分，而内存管理模块一般都不会耦合其他模块，所以即使你一直不看内存管理模块的实现也不影响对其他模块的研究，但你却会发现内存管理模块绝对是贯穿所有……
+            <p class="readmore"><a href="http://fhstack.github.io/post/2019-03-30-redisyuanmapouxineicunguanlizmalloc/">阅读全文</a></p>
+        </div>
+    </article>
+    
+    <article class="post">
+        <header>
+            <h1 class="post-title">
+                <a href="http://fhstack.github.io/post/2019-03-30-redisyuanmapouxiyuanzicaozuo/">Redis源码剖析——原子操作</a>
+            </h1>
+        </header>
+        <date class="post-meta meta-date">
+            2019年3月30日
+        </date>
+        
+        <div class="post-meta meta-category">
+            |
+            
+            <a href='/categories/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB'>源码阅读</a>
+            
+        </div>
+        
+        <div class="post-content">
+            我们知道Redis的所有操作都是原子操作，无论是Get还是ISMEMBER、Set等操作，全部都可以放心使用，其内部保证了操作的原子性，Redis中最底层中基本原子操作的封装，其实并不麻烦，反而相当简洁，这部分代码位于atomicvar.h中。 总共就是这三个，事实上他们都是宏： 1553919915556723.png……
+            <p class="readmore"><a href="http://fhstack.github.io/post/2019-03-30-redisyuanmapouxiyuanzicaozuo/">阅读全文</a></p>
+        </div>
+    </article>
+    
+    <article class="post">
+        <header>
+            <h1 class="post-title">
+                <a href="http://fhstack.github.io/post/2019-03-25-redisyuanmapouxiaeer/">Redis源码剖析——ae（二）</a>
+            </h1>
+        </header>
+        <date class="post-meta meta-date">
+            2019年3月25日
+        </date>
+        
+        <div class="post-meta meta-category">
+            |
+            
+            <a href='/categories/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB'>源码阅读</a>
+            
+        </div>
+        
+        <div class="post-content">
+            开始进入ae事件库的实现，这部分代码位于ae.c 1553518087124571.png 同样，没有任何外部库的依赖，其中config.h配置头文件会决定IO多路复用的选取，如下 1553518189574268.png 此处按照性能降序排列，这四种实现都是对系统IO多路复用库API进行一定程度的封装，其中kqueue和evport用于FreeBSD和Sola……
+            <p class="readmore"><a href="http://fhstack.github.io/post/2019-03-25-redisyuanmapouxiaeer/">阅读全文</a></p>
+        </div>
+    </article>
+    
+    <article class="post">
+        <header>
+            <h1 class="post-title">
+                <a href="http://fhstack.github.io/post/2019-03-25-redisyuanmapouxiaeyi/">Redis源码剖析——ae（一）</a>
+            </h1>
+        </header>
+        <date class="post-meta meta-date">
+            2019年3月25日
+        </date>
+        
+        <div class="post-meta meta-category">
+            |
+            
+            <a href='/categories/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB'>源码阅读</a>
+            
+        </div>
+        
+        <div class="post-content">
+            ae是一个Redis实现的事件库，为什么叫ae，如下 1553501010670582.png 一个事件库，又是Redis喜欢的命名方式，那么我们干脆也称其为ae事件库。 这个事件库非常的小巧并且精致，为什么这么说呢，因为它几乎毫无外部依赖，完全原生的实现，对于不同的系统IO多路复用都有一套最高效的实现：对于Solaris……
+            <p class="readmore"><a href="http://fhstack.github.io/post/2019-03-25-redisyuanmapouxiaeyi/">阅读全文</a></p>
+        </div>
+    </article>
+    
+    <article class="post">
+        <header>
+            <h1 class="post-title">
+                <a href="http://fhstack.github.io/post/2019-03-24-redisyuanmapouxiadlist/">Redis源码剖析——adlist</a>
+            </h1>
+        </header>
+        <date class="post-meta meta-date">
+            2019年3月24日
+        </date>
+        
+        <div class="post-meta meta-category">
+            |
+            
+            <a href='/categories/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB'>源码阅读</a>
+            
+        </div>
+        
+        <div class="post-content">
+            adlist是一个普通的双向链表 为什么叫adlist？ 1553417242987884.png redis作者算是首创了这种命名风格，axxxxx，后面我们还会看到类似的文件命名方式，意即“一个xxxxx”。 虽然是普通的链表，但Redis的adlist绝对也是C下双向链表的实现范式。 基本结构和方法的原型声明与定义(ad……
+            <p class="readmore"><a href="http://fhstack.github.io/post/2019-03-24-redisyuanmapouxiadlist/">阅读全文</a></p>
+        </div>
+    </article>
+    
+    <article class="post">
+        <header>
+            <h1 class="post-title">
+                <a href="http://fhstack.github.io/post/2019-03-23-redisyuanmapouxigailan/">Redis源码剖析——概览</a>
+            </h1>
+        </header>
+        <date class="post-meta meta-date">
+            2019年3月23日
+        </date>
+        
+        <div class="post-meta meta-category">
+            |
+            
+            <a href='/categories/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB'>源码阅读</a>
+            
+        </div>
+        
+        <div class="post-content">
+            Redis至今刚好十年，其优秀的性能与高可用性综合起来可以说是目前最优秀的KV数据库，Redis被广泛用于各种缓存场景 个人认为以下是的Redis的核心优势 单机每秒十万高并发（官方数据） 操作的原生原子性 毫无外部库依赖，源码使用纯粹干净的ANSI C编写 丰富的数据结构可胜任几乎所有业务……
+            <p class="readmore"><a href="http://fhstack.github.io/post/2019-03-23-redisyuanmapouxigailan/">阅读全文</a></p>
+        </div>
+    </article>
+    
+
+    
+
+
+
+<ol class="page-navigator">
+    
+    <li class="prev">
+        <a href="http://fhstack.github.io/categories/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB/">上一页</a>
+    </li>
+    
+
+    
+    <li >
+        <a href="http://fhstack.github.io/categories/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB/">1</a>
+    </li>
+    
+    <li  class="current">
+        <a href="http://fhstack.github.io/categories/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB/page/2/">2</a>
+    </li>
+    
+
+    
+</ol>
+
+
+
+</div>
+
+                    <footer id="footer">
+    <div>
+        &copy; 2021 <a href="http://fhstack.github.io/">Fh&#39;s Blog By Fh</a>
+        
+    </div>
+    <br />
+    <div>
+        <div class="github-badge">
+            <a href="https://gohugo.io/" target="_black" rel="nofollow"><span class="badge-subject">Powered by</span><span class="badge-value bg-blue">Hugo</span></a>
+        </div>
+        <div class="github-badge">
+            <a href="https://www.flysnow.org/" target="_black"><span class="badge-subject">Design by</span><span class="badge-value bg-brightgreen">飞雪无情</span></a>
+        </div>
+        <div class="github-badge">
+            <a href="https://github.com/flysnow-org/maupassant-hugo" target="_black"><span class="badge-subject">Theme</span><span class="badge-value bg-yellowgreen">Maupassant</span></a>
+        </div>
+    </div>
+</footer>
+
+
+
+<a id="rocket" href="#top"></a>
+<script type="text/javascript" src='/js/totop.js?v=0.0.0' async=""></script>
+
+
+
+    <script type="text/javascript" src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script>
+
+
+
+
+    <script src='/js/douban.js'></script>
+
+                </div>
+
+                <div id="secondary">
+    <section class="widget">
+        <form id="search" action='http://fhstack.github.io/search/' method="get" accept-charset="utf-8" target="_blank" _lpchecked="1">
+      
+      <input type="text" name="q" maxlength="20" placeholder="Search">
+      <input type="hidden" name="sitesearch" value="http://fhstack.github.io/">
+      <button type="submit" class="submit icon-search"></button>
+</form>
+    </section>
+    
+    <section class="widget">
+        <h3 class="widget-title">最近文章</h3>
+<ul class="widget-list">
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2020-06-27-sync-mapyuanmayuedubiji/" title="sync.Map源码阅读笔记">sync.Map源码阅读笔记</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2020-06-02-quic/" title="QUIC">QUIC</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-06-17-redisyuanmapouxidicter/" title="Redis源码剖析——dict（二）">Redis源码剖析——dict（二）</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-06-14-redisyuanmapouxidict/" title="Redis源码剖析——dict（一）">Redis源码剖析——dict（一）</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-06-11-redisyuanmapouxiintset/" title="Redis源码剖析——intset">Redis源码剖析——intset</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-05-12-redisyuanmapouxihyperloglog/" title="Redis源码剖析——HyperLogLog">Redis源码剖析——HyperLogLog</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-05-08-redisyuanmapouxitiaobiaosan/" title="Redis源码剖析——跳表（三）">Redis源码剖析——跳表（三）</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-05-05-redisyuanmapouxitiaobiaoer/" title="Redis源码剖析——跳表（二）">Redis源码剖析——跳表（二）</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-05-03-redisyuanmapouxitiaobiaoyi/" title="Redis源码剖析——跳表（一）">Redis源码剖析——跳表（一）</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-04-20-nihuanzaizheyangxiekuaipai/" title="你还在这样写快排？">你还在这样写快排？</a>
+    </li>
+    
+</ul>
+    </section>
+
+    
+
+    <section class="widget">
+        <h3 class="widget-title"><a href='/categories/'>分类</a></h3>
+<ul class="widget-list">
+    
+    <li><a href="http://fhstack.github.io/categories/C/C&#43;&#43;/">C/C&#43;&#43; (1)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/Golang/">Golang (6)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/linux/">linux (3)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/%E6%9D%82%E8%AE%B0/">杂记 (1)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB/">源码阅读 (17)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/">算法与数据结构 (2)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/%E7%BD%91%E7%BB%9C/">网络 (1)</a></li>
+    
+</ul>
+    </section>
+
+    <section class="widget">
+        <h3 class="widget-title"><a href='/tags/'>标签</a></h3>
+<div class="tagcloud">
+    
+</div>
+    </section>
+
+    
+<section class="widget">
+    <h3 class="widget-title">友情链接</h3>
+    <ul class="widget-list">
+        
+        <li>
+            <a target="_blank" href="https://www.github.com/fhstack" title="我的Github">我的Githhub</a>
+        </li>
+        
+    </ul>
+</section>
+
+
+    <section class="widget">
+        <h3 class="widget-title">其它</h3>
+        <ul class="widget-list">
+            <li><a href="http://fhstack.github.io/index.xml">文章 RSS</a></li>
+        </ul>
+    </section>
+</div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

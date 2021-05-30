@@ -1,0 +1,574 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <meta name="referrer" content="no-referrer-when-downgrade">
+    
+
+    <title>Redis源码剖析——adlist | Fh&#39;s Blog</title>
+    <meta property="og:title" content="Redis源码剖析——adlist - Fh&#39;s Blog">
+    <meta property="og:type" content="article">
+        
+    <meta property="article:published_time" content='2019-03-24T10:17:11&#43;08:00'>
+        
+        
+    <meta property="article:modified_time" content='2019-03-24T10:17:11&#43;08:00'>
+        
+    <meta name="Keywords" content="golang,go语言,redis,mysql,mongo,kafka,rocketMQ,消息中间件,分布一致性,算法,操作系统">
+    <meta name="description" content="Redis源码剖析——adlist">
+        <meta name="author" content="feihao">
+        
+    <meta property="og:url" content="http://fhstack.github.io/post/2019-03-24-redisyuanmapouxiadlist/">
+    <link rel="shortcut icon" href='/favicon.ico'  type="image/x-icon">
+
+    <link rel="stylesheet" href='/css/normalize.css'>
+    <link rel="stylesheet" href='/css/style.css'>
+    <script type="text/javascript" src="//cdn.bootcdn.net/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+    
+    
+    
+    
+    
+    
+        <link rel="stylesheet" href='/css/douban.css'>
+    
+        <link rel="stylesheet" href='/css/other.css'>
+    
+</head>
+
+
+<body>
+    <header id="header" class="clearfix">
+    <div class="container">
+        <div class="col-group">
+            <div class="site-name ">
+                
+                    <a id="logo" href="http://fhstack.github.io/">
+                        Fh&#39;s Blog
+                    </a>
+                
+                <p class="description">已识乾坤大，犹怜草木青</p>
+            </div>
+            <div>
+                <nav id="nav-menu" class="clearfix">
+                    <a class="current" href="http://fhstack.github.io/">首页</a>
+                    
+                    <a  href="http://fhstack.github.io/tools/" title="工具">工具</a>
+                    
+                    <a  href="http://fhstack.github.io/archives/" title="归档">归档</a>
+                    
+                    <a  href="http://fhstack.github.io/about/" title="关于">关于</a>
+                    
+                </nav>
+            </div>
+        </div>
+    </div>
+</header>
+
+    <div id="body">
+        <div class="container">
+            <div class="col-group">
+
+                <div class="col-8" id="main">
+                    
+<div class="res-cons">
+    <style type="text/css">
+    .post-toc {
+        position: fixed;
+        width: 200px;
+        margin-left: -210px;
+        padding: 5px 10px;
+        font-family: Athelas, STHeiti, Microsoft Yahei, serif;
+        font-size: 12px;
+        border: 1px solid rgba(0, 0, 0, .07);
+        border-radius: 5px;
+        background-color: rgba(255, 255, 255, 0.98);
+        background-clip: padding-box;
+        -webkit-box-shadow: 1px 1px 2px rgba(0, 0, 0, .125);
+        box-shadow: 1px 1px 2px rgba(0, 0, 0, .125);
+        word-wrap: break-word;
+        white-space: nowrap;
+        -webkit-box-sizing: border-box;
+        box-sizing: border-box;
+        z-index: 999;
+        cursor: pointer;
+        max-height: 70%;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+
+    .post-toc .post-toc-title {
+        width: 100%;
+        margin: 0 auto;
+        font-size: 20px;
+        font-weight: 400;
+        text-transform: uppercase;
+        text-align: center;
+    }
+
+    .post-toc .post-toc-content {
+        font-size: 15px;
+    }
+
+    .post-toc .post-toc-content>nav>ul {
+        margin: 10px 0;
+    }
+
+    .post-toc .post-toc-content ul {
+        padding-left: 20px;
+        list-style: square;
+        margin: 0.5em;
+        line-height: 1.8em;
+    }
+
+    .post-toc .post-toc-content ul ul {
+        padding-left: 15px;
+        display: none;
+    }
+
+    @media print,
+    screen and (max-width:1057px) {
+        .post-toc {
+            display: none;
+        }
+    }
+</style>
+<div class="post-toc" style="position: absolute; top: 188px;">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+        <nav id="TableOfContents">
+  <ul>
+    <li><a href="#为什么叫adlist">为什么叫adlist？</a></li>
+    <li><a href="#基本结构和方法的原型声明与定义adlisth">基本结构和方法的原型声明与定义(adlist.h)</a></li>
+    <li><a href="#实现adlistc">实现(adlist.c)</a></li>
+  </ul>
+</nav>
+    </div>
+</div>
+<script type="text/javascript">
+    $(document).ready(function () {
+        var postToc = $(".post-toc");
+        if (postToc.length) {
+            var leftPos = $("#main").offset().left;
+            if(leftPos<220){
+                postToc.css({"width":leftPos-10,"margin-left":(0-leftPos)})
+            }
+
+            var t = postToc.offset().top - 20,
+                a = {
+                    start: {
+                        position: "absolute",
+                        top: t
+                    },
+                    process: {
+                        position: "fixed",
+                        top: 20
+                    },
+                };
+            $(window).scroll(function () {
+                var e = $(window).scrollTop();
+                e < t ? postToc.css(a.start) : postToc.css(a.process)
+            })
+        }
+    })
+</script>
+    <article class="post">
+        <header>
+            <h1 class="post-title">Redis源码剖析——adlist</h1>
+        </header>
+        <date class="post-meta meta-date">
+            2019年3月24日
+        </date>
+        
+        <div class="post-meta">
+            <span>|</span>
+            
+            <span class="meta-category"><a href='/categories/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB'>源码阅读</a></span>
+            
+        </div>
+        
+        
+        <div class="post-meta">
+            <span id="busuanzi_container_page_pv">|<span id="busuanzi_value_page_pv"></span><span>
+                    阅读</span></span>
+        </div>
+        
+        
+        <div class="post-content">
+            <p>adlist是一个普通的双向链表</p>
+<h2 id="为什么叫adlist">为什么叫adlist？</h2>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190324/1553417242987884.png" />
+    
+    <figcaption class="p-2 text-center">1553417242987884.png</figcaption>
+</figure></p>
+<p>redis作者算是首创了这种命名风格，axxxxx，后面我们还会看到类似的文件命名方式，意即“一个xxxxx”。</p>
+<p>虽然是普通的链表，但Redis的adlist绝对也是C下双向链表的实现范式。</p>
+<h2 id="基本结构和方法的原型声明与定义adlisth">基本结构和方法的原型声明与定义(adlist.h)</h2>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190324/1553418911476939.png" />
+    
+    <figcaption class="p-2 text-center">1553418911476939.png</figcaption>
+</figure></p>
+<p>节点的定义，一前一后两个指针，void*的值以适配所有数据类型</p>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190324/1553419116552078.png" />
+    
+    <figcaption class="p-2 text-center">1553419116552078.png</figcaption>
+</figure></p>
+<p>迭代器的定义，其中direction域用于指示遍历方向，用迭代器所带来的解耦在后面会明显体现出来</p>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190324/1553419282440517.png" />
+    
+    <figcaption class="p-2 text-center">1553419282440517.png</figcaption>
+</figure></p>
+<p>一个双向链表的所有元信息集成于list中</p>
+<p>dup为复制链表的方法；free为释放节点数据域（value）的方法；match方法用于指明在链表中搜索某个节点时判断是否匹配到。常规类型显然是不需要这些方法的，只有对于某些非原生类型需要指定这些方法。</p>
+<p>head、tail分别是链表的头尾指针，len指示链表的长度。</p>
+<p>想想自己曾写过的链表有这种设计吗？</p>
+<p>下面是一些宏函数，非常简单但是非常实用</p>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190324/1553419889629353.png" />
+    
+    <figcaption class="p-2 text-center">1553419889629353.png</figcaption>
+</figure></p>
+<p>下面是所有方法的原型声明</p>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190324/1553420059224731.png" />
+    
+    <figcaption class="p-2 text-center">1553420059224731.png</figcaption>
+</figure></p>
+<p>最后注意这两个宏，这两个宏用于指明迭代器的遍历方向</p>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190324/1553420183361141.png" />
+    
+    <figcaption class="p-2 text-center">1553420183361141.png</figcaption>
+</figure></p>
+<h2 id="实现adlistc">实现(adlist.c)</h2>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="http://fhanddx.top/wp-content/uploads/image/20190324/1553420472959544.png" />
+    
+    <figcaption class="p-2 text-center">1553420472959544.png</figcaption>
+</figure></p>
+<p>整个实现唯一的依赖就是zmalloc，zmalloc用于redis的内存管理，使用时与glibc原生的malloc一样，后面会进行剖析</p>
+<hr>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190324/1553420794685555.png" />
+    
+    <figcaption class="p-2 text-center">1553420794685555.png</figcaption>
+</figure></p>
+<p>创建一个链表结构并做一些初始化，此时链表中还没有任何节点</p>
+<hr>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190324/1553421046425811.png" />
+    
+    <figcaption class="p-2 text-center">1553421046425811.png</figcaption>
+</figure></p>
+<p>释放整个链表，包括释放每个节点的数据域，此时free方法若是不为空则会调用free去释放数据域，释放完数据域后再释放节点本身</p>
+<hr>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190324/1553421164538571.png" />
+    
+    <figcaption class="p-2 text-center">1553421164538571.png</figcaption>
+</figure></p>
+<p>在头部插入一个节点，不多说</p>
+<hr>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190324/1553421310285059.png" />
+    
+    <figcaption class="p-2 text-center">1553421310285059.png</figcaption>
+</figure></p>
+<p>在尾部插入一个节点，不多说</p>
+<hr>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190324/1553421363261646.png" />
+    
+    <figcaption class="p-2 text-center">1553421363261646.png</figcaption>
+</figure></p>
+<p>在链表的指定节点的前或后插入一个新节点，入参after若不为0则在old_node后面插入，否则在前面。若是old_node本身是头或尾节点时，对应的前插或后插需要更新相应的头尾，同时要检查新插入节点的前后节点的存在性，并对指针进行相应更行。这段代码也是写得相当精炼了，非常干净漂亮，大多数人写这个过程会冗余不少判断。</p>
+<hr>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190324/1553421764846887.png" />
+    
+    <figcaption class="p-2 text-center">1553421764846887.png</figcaption>
+</figure></p>
+<p>删除指定节点，注意节点本身是头尾的时候应该更新list的head或tail，同时只要是删除操作就应考虑是否需要用free方法去释放数据域，最后调节链表的长度。</p>
+<hr>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190324/1553421928792582.png" />
+    
+    <figcaption class="p-2 text-center">1553421928792582.png</figcaption>
+</figure></p>
+<p>获取一个迭代器时通过direction参数来确定是正向迭代器还是反向迭代器，正向迭代器从头部开始顺序遍历，反向迭代器从尾部开始逆序访问；</p>
+<p>释放迭代器可以直接zfree；</p>
+<p><strong>值得注意的是，这里的迭代器是左开右开区间</strong></p>
+<hr>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190324/1553422104507228.png" />
+    
+    <figcaption class="p-2 text-center">1553422104507228.png</figcaption>
+</figure></p>
+<p>将迭代器重新定位到头部或尾部，并且会直接对迭代器的方向进行修改</p>
+<hr>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190324/1553422394922054.png" />
+    
+    <figcaption class="p-2 text-center">1553422394922054.png</figcaption>
+</figure></p>
+<p>返回迭代器的所指向的下一个节点并且迭代器往后（或往前）走一步，要注意一个迭代器的初始next指针指向head或者tail节点</p>
+<hr>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190324/1553430122284899.png" />
+    
+    <figcaption class="p-2 text-center">1553430122284899.png</figcaption>
+</figure></p>
+<p>同数组下标一样定位到链表中某个节点，若index &gt;= 0，则head节点为index = 0，head-&gt;next index = 1，以此类推；若index &lt; 0，tail节点为index = -1，tail-&gt;prev为 index = -2，以此类推；若index超出范围则返回NULL。</p>
+<hr>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190324/1553430352242295.png" />
+    
+    <figcaption class="p-2 text-center">1553430352242295.png</figcaption>
+</figure></p>
+<p>链表的右旋操作，即把尾节点移到链表头部</p>
+<hr>
+<p>如果什么时候你需要用到一个双向链表，别忘了这儿有个现成的轮子~</p>
+
+        </div>
+
+        
+<div class="post-archive">
+    <ul class="post-copyright">
+        <li><strong>原文作者：</strong><a rel="author" href="http://fhstack.github.io/">Fh</a></li>
+        <li style="word-break:break-all"><strong>原文链接：</strong><a href="http://fhstack.github.io/post/2019-03-24-redisyuanmapouxiadlist/">http://fhstack.github.io/post/2019-03-24-redisyuanmapouxiadlist/</a></li>
+        <li><strong>版权声明：</strong>本作品采用<a rel="license" href="https://creativecommons.org/licenses/by-nc-nd/4.0/">知识共享署名-非商业性使用-禁止演绎 4.0 国际许可协议</a>进行许可，非商业转载请注明出处（作者，原文链接），商业转载请联系作者获得授权。</li>
+    </ul>
+</div>
+<br/>
+
+
+
+        
+
+<div class="post-archive">
+    <h2>See Also</h2>
+    <ul class="listing">
+        
+        <li><a href="/post/2019-03-23-redisyuanmapouxigailan/">Redis源码剖析——概览</a></li>
+        
+        <li><a href="/post/2019-03-22-forkhoufashengleshenmewenjianpian/">fork后发生了什么——文件篇</a></li>
+        
+        <li><a href="/post/2019-03-16-forkhoufashengleshenmeneicunpian/">fork后发生了什么——内存篇</a></li>
+        
+        <li><a href="/post/2019-03-16-forkhoufashengleshenme/">fork后发生了什么——执行流篇</a></li>
+        
+        <li><a href="/post/2019-03-13-zhidaozhegekenghuanshicaile/">知道这个坑，还是踩了</a></li>
+        
+    </ul>
+</div>
+
+
+        <div class="post-meta meta-tags">
+            
+            没有标签
+            
+        </div>
+    </article>
+    
+    
+
+    
+    
+    <div class="post bg-white">
+      <script src="https://utteranc.es/client.js"
+            repo= "your github repo"
+            issue-term="pathname"
+            theme="github-light"
+            crossorigin="anonymous"
+            async>
+      </script>
+    </div>
+    
+</div>
+
+                    <footer id="footer">
+    <div>
+        &copy; 2021 <a href="http://fhstack.github.io/">Fh&#39;s Blog By Fh</a>
+        
+    </div>
+    <br />
+    <div>
+        <div class="github-badge">
+            <a href="https://gohugo.io/" target="_black" rel="nofollow"><span class="badge-subject">Powered by</span><span class="badge-value bg-blue">Hugo</span></a>
+        </div>
+        <div class="github-badge">
+            <a href="https://www.flysnow.org/" target="_black"><span class="badge-subject">Design by</span><span class="badge-value bg-brightgreen">飞雪无情</span></a>
+        </div>
+        <div class="github-badge">
+            <a href="https://github.com/flysnow-org/maupassant-hugo" target="_black"><span class="badge-subject">Theme</span><span class="badge-value bg-yellowgreen">Maupassant</span></a>
+        </div>
+    </div>
+</footer>
+
+
+    
+    <script type="text/javascript">
+        window.MathJax = {
+            tex2jax: {
+                inlineMath: [['$', '$']],
+                processEscapes: true
+                }
+            };
+    </script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML' async></script>
+
+<a id="rocket" href="#top"></a>
+<script type="text/javascript" src='/js/totop.js?v=0.0.0' async=""></script>
+
+
+
+    <script type="text/javascript" src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script>
+
+
+
+
+    <script src='/js/douban.js'></script>
+
+                </div>
+
+                <div id="secondary">
+    <section class="widget">
+        <form id="search" action='http://fhstack.github.io/search/' method="get" accept-charset="utf-8" target="_blank" _lpchecked="1">
+      
+      <input type="text" name="q" maxlength="20" placeholder="Search">
+      <input type="hidden" name="sitesearch" value="http://fhstack.github.io/">
+      <button type="submit" class="submit icon-search"></button>
+</form>
+    </section>
+    
+    <section class="widget">
+        <h3 class="widget-title">最近文章</h3>
+<ul class="widget-list">
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2020-06-27-sync-mapyuanmayuedubiji/" title="sync.Map源码阅读笔记">sync.Map源码阅读笔记</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2020-06-02-quic/" title="QUIC">QUIC</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-06-17-redisyuanmapouxidicter/" title="Redis源码剖析——dict（二）">Redis源码剖析——dict（二）</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-06-14-redisyuanmapouxidict/" title="Redis源码剖析——dict（一）">Redis源码剖析——dict（一）</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-06-11-redisyuanmapouxiintset/" title="Redis源码剖析——intset">Redis源码剖析——intset</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-05-12-redisyuanmapouxihyperloglog/" title="Redis源码剖析——HyperLogLog">Redis源码剖析——HyperLogLog</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-05-08-redisyuanmapouxitiaobiaosan/" title="Redis源码剖析——跳表（三）">Redis源码剖析——跳表（三）</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-05-05-redisyuanmapouxitiaobiaoer/" title="Redis源码剖析——跳表（二）">Redis源码剖析——跳表（二）</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-05-03-redisyuanmapouxitiaobiaoyi/" title="Redis源码剖析——跳表（一）">Redis源码剖析——跳表（一）</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-04-20-nihuanzaizheyangxiekuaipai/" title="你还在这样写快排？">你还在这样写快排？</a>
+    </li>
+    
+</ul>
+    </section>
+
+    
+
+    <section class="widget">
+        <h3 class="widget-title"><a href='/categories/'>分类</a></h3>
+<ul class="widget-list">
+    
+    <li><a href="http://fhstack.github.io/categories/C/C&#43;&#43;/">C/C&#43;&#43; (1)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/Golang/">Golang (6)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/linux/">linux (3)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/%E6%9D%82%E8%AE%B0/">杂记 (1)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB/">源码阅读 (17)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/">算法与数据结构 (2)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/%E7%BD%91%E7%BB%9C/">网络 (1)</a></li>
+    
+</ul>
+    </section>
+
+    <section class="widget">
+        <h3 class="widget-title"><a href='/tags/'>标签</a></h3>
+<div class="tagcloud">
+    
+</div>
+    </section>
+
+    
+<section class="widget">
+    <h3 class="widget-title">友情链接</h3>
+    <ul class="widget-list">
+        
+        <li>
+            <a target="_blank" href="https://www.github.com/fhstack" title="我的Github">我的Githhub</a>
+        </li>
+        
+    </ul>
+</section>
+
+
+    <section class="widget">
+        <h3 class="widget-title">其它</h3>
+        <ul class="widget-list">
+            <li><a href="http://fhstack.github.io/index.xml">文章 RSS</a></li>
+        </ul>
+    </section>
+</div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

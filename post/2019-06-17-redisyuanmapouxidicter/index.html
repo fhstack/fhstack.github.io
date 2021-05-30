@@ -1,0 +1,717 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <meta name="referrer" content="no-referrer-when-downgrade">
+    
+
+    <title>Redis源码剖析——dict（二） | Fh&#39;s Blog</title>
+    <meta property="og:title" content="Redis源码剖析——dict（二） - Fh&#39;s Blog">
+    <meta property="og:type" content="article">
+        
+    <meta property="article:published_time" content='2019-06-17T07:40:38&#43;08:00'>
+        
+        
+    <meta property="article:modified_time" content='2019-06-17T07:40:38&#43;08:00'>
+        
+    <meta name="Keywords" content="golang,go语言,redis,mysql,mongo,kafka,rocketMQ,消息中间件,分布一致性,算法,操作系统">
+    <meta name="description" content="Redis源码剖析——dict（二）">
+        <meta name="author" content="feihao">
+        
+    <meta property="og:url" content="http://fhstack.github.io/post/2019-06-17-redisyuanmapouxidicter/">
+    <link rel="shortcut icon" href='/favicon.ico'  type="image/x-icon">
+
+    <link rel="stylesheet" href='/css/normalize.css'>
+    <link rel="stylesheet" href='/css/style.css'>
+    <script type="text/javascript" src="//cdn.bootcdn.net/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+    
+    
+    
+    
+    
+    
+        <link rel="stylesheet" href='/css/douban.css'>
+    
+        <link rel="stylesheet" href='/css/other.css'>
+    
+</head>
+
+
+<body>
+    <header id="header" class="clearfix">
+    <div class="container">
+        <div class="col-group">
+            <div class="site-name ">
+                
+                    <a id="logo" href="http://fhstack.github.io/">
+                        Fh&#39;s Blog
+                    </a>
+                
+                <p class="description">已识乾坤大，犹怜草木青</p>
+            </div>
+            <div>
+                <nav id="nav-menu" class="clearfix">
+                    <a class="current" href="http://fhstack.github.io/">首页</a>
+                    
+                    <a  href="http://fhstack.github.io/tools/" title="工具">工具</a>
+                    
+                    <a  href="http://fhstack.github.io/archives/" title="归档">归档</a>
+                    
+                    <a  href="http://fhstack.github.io/about/" title="关于">关于</a>
+                    
+                </nav>
+            </div>
+        </div>
+    </div>
+</header>
+
+    <div id="body">
+        <div class="container">
+            <div class="col-group">
+
+                <div class="col-8" id="main">
+                    
+<div class="res-cons">
+    <style type="text/css">
+    .post-toc {
+        position: fixed;
+        width: 200px;
+        margin-left: -210px;
+        padding: 5px 10px;
+        font-family: Athelas, STHeiti, Microsoft Yahei, serif;
+        font-size: 12px;
+        border: 1px solid rgba(0, 0, 0, .07);
+        border-radius: 5px;
+        background-color: rgba(255, 255, 255, 0.98);
+        background-clip: padding-box;
+        -webkit-box-shadow: 1px 1px 2px rgba(0, 0, 0, .125);
+        box-shadow: 1px 1px 2px rgba(0, 0, 0, .125);
+        word-wrap: break-word;
+        white-space: nowrap;
+        -webkit-box-sizing: border-box;
+        box-sizing: border-box;
+        z-index: 999;
+        cursor: pointer;
+        max-height: 70%;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+
+    .post-toc .post-toc-title {
+        width: 100%;
+        margin: 0 auto;
+        font-size: 20px;
+        font-weight: 400;
+        text-transform: uppercase;
+        text-align: center;
+    }
+
+    .post-toc .post-toc-content {
+        font-size: 15px;
+    }
+
+    .post-toc .post-toc-content>nav>ul {
+        margin: 10px 0;
+    }
+
+    .post-toc .post-toc-content ul {
+        padding-left: 20px;
+        list-style: square;
+        margin: 0.5em;
+        line-height: 1.8em;
+    }
+
+    .post-toc .post-toc-content ul ul {
+        padding-left: 15px;
+        display: none;
+    }
+
+    @media print,
+    screen and (max-width:1057px) {
+        .post-toc {
+            display: none;
+        }
+    }
+</style>
+<div class="post-toc" style="position: absolute; top: 188px;">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+        <nav id="TableOfContents">
+  <ul>
+    <li><a href="#哈希函数">哈希函数</a></li>
+    <li><a href="#创建">创建</a>
+      <ul>
+        <li><a href="#简单初始化">简单初始化</a></li>
+        <li><a href="#真正的创建实现">真正的创建实现</a></li>
+      </ul>
+    </li>
+    <li><a href="#incremental-rehashing">Incremental Rehashing</a>
+      <ul>
+        <li><a href="#rehash触发">Rehash触发</a></li>
+      </ul>
+    </li>
+    <li><a href="#迭代器的实现">迭代器的实现</a></li>
+  </ul>
+</nav>
+    </div>
+</div>
+<script type="text/javascript">
+    $(document).ready(function () {
+        var postToc = $(".post-toc");
+        if (postToc.length) {
+            var leftPos = $("#main").offset().left;
+            if(leftPos<220){
+                postToc.css({"width":leftPos-10,"margin-left":(0-leftPos)})
+            }
+
+            var t = postToc.offset().top - 20,
+                a = {
+                    start: {
+                        position: "absolute",
+                        top: t
+                    },
+                    process: {
+                        position: "fixed",
+                        top: 20
+                    },
+                };
+            $(window).scroll(function () {
+                var e = $(window).scrollTop();
+                e < t ? postToc.css(a.start) : postToc.css(a.process)
+            })
+        }
+    })
+</script>
+    <article class="post">
+        <header>
+            <h1 class="post-title">Redis源码剖析——dict（二）</h1>
+        </header>
+        <date class="post-meta meta-date">
+            2019年6月17日
+        </date>
+        
+        <div class="post-meta">
+            <span>|</span>
+            
+            <span class="meta-category"><a href='/categories/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB'>源码阅读</a></span>
+            
+        </div>
+        
+        
+        <div class="post-meta">
+            <span id="busuanzi_container_page_pv">|<span id="busuanzi_value_page_pv"></span><span>
+                    阅读</span></span>
+        </div>
+        
+        
+        <div class="post-content">
+            <p>下面要探究的核心问题是dict中为何要用两个哈希表，这两个哈希表给Redis的dict带来了什么好处？我们从dict最开始的创建、插入、迭代器、以及删除等全过程来剖析</p>
+<p>（ps: 下面有时候会把dict和字典混说）</p>
+<h2 id="哈希函数">哈希函数</h2>
+<p>我们不妨先看看Redis中哈希用的哈希函数</p>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190417/1555486330514822.png" />
+    
+    <figcaption class="p-2 text-center">1555486330514822.png</figcaption>
+</figure></p>
+<p>这是比较常用的MurmurHash2，这个哈希函数在这的实现做了两个假设</p>
+<ol>
+<li>可以从任何地址读取4各字节不会发生错误</li>
+<li>int为四字节</li>
+</ol>
+<p>同时这个哈希函数的结果在大小端机器不同，可以注意到使用了一个seed，这个种子有默认值与设定、获取的方法
+关于hash函数的细节在此我们当然就不研究了</p>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190417/1555486561175903.png" />
+    
+    <figcaption class="p-2 text-center">1555486561175903.png</figcaption>
+</figure></p>
+<p>还提供了一个不太敏感的哈希函数备选</p>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190417/1555486780850895.png" />
+    
+    <figcaption class="p-2 text-center">1555486780850895.png</figcaption>
+</figure></p>
+<h2 id="创建">创建</h2>
+<h3 id="简单初始化">简单初始化</h3>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190417/1555486927603095.png" />
+    
+    <figcaption class="p-2 text-center">1555486927603095.png</figcaption>
+</figure></p>
+<p>创建整个字典结构。不过注释里也直接说创建哈希表，这当然也是没什么问题的，毕竟有时候习惯性的把哈希和字典结构直接等同，不过私以为这个注释不太恰当</p>
+<p>我们来看看字典的初始化函数做了什么</p>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190417/1555487100854789.png" />
+    
+    <figcaption class="p-2 text-center">1555487100854789.png</figcaption>
+</figure></p>
+<p>（同样此处官方注释为初始化哈希表，但实际上实在初始化整个字典结构，你明白的~)</p>
+<p>字典初始化做的事情也是比较直接：清空两张哈系表，把字典上的所有方法type字段构造好，赋值私有数据指针，把rehashidx赋为-1，迭代器赋为0，关于rehashidx你马上就会明白了。</p>
+<p>接下来当然就是再看看这个Reset函数对哈希表做了什么</p>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190417/1555487483858892.png" />
+    
+    <figcaption class="p-2 text-center">1555487483858892.png</figcaption>
+</figure></p>
+<p>没错，什么都没做，就是清空了一下</p>
+<h3 id="真正的创建实现">真正的创建实现</h3>
+<p>以上实际上只能算是dict的简单初始化，真正的创建从下面的resize开始被发起</p>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190417/1555488008245643.png" />
+    
+    <figcaption class="p-2 text-center">1555488008245643.png</figcaption>
+</figure></p>
+<p>Resize函数用于发起对于哈希表的大小调整，调整的后的size（哈希桶的个数）是一个可以保证容纳当前所有元素，并且负载因子小于等于阈值。</p>
+<p>关于我们暂且先给思维发起一个“中断”看看这个~</p>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190417/1555488293682888.png" />
+    
+    <figcaption class="p-2 text-center">1555488293682888.png</figcaption>
+</figure></p>
+<p>dict_can_resize即是一个表示是否允许发起resize的标识，当这个标识为1时，若当前负载因子未被超过阈值则不允许发起resize，当然负载因子被超过时还是允许扩容发起resize的，这个标识被设置的意义就在于当前负载因子未达到阈值就不准去resize</p>
+<p>关于dict_can_resize这个标识提供了两个方法来修改</p>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190417/1555488763696055.png" />
+    
+    <figcaption class="p-2 text-center">1555488763696055.png</figcaption>
+</figure></p>
+<p>那么dict_force_resize_ratio呢？相信很多人都猜到了，它就是负载因子的阈值</p>
+<p>我们从“中断”返回到我们的resize函数里~</p>
+<p>很显然可以看到，以下两件个条件任一被满足时则不允许主动resize</p>
+<ul>
+<li>
+<p>设置了dict_can_resize标识</p>
+</li>
+<li>
+<p>正处于rehashing</p>
+</li>
+</ul>
+<p>（ps：当因负载因子达到阈值而扩容时并不通过这个resize函数来做扩容，会有别的函数来检查是否达到负载因子阈值而扩容）</p>
+<p>如果可以resize，且当前表中元素小于默认初始值4时（这个初始值在上一篇说过了，在上一篇你可以看到这个值的定义），则会向上增加到4，为什么非要这么做呢，后面我们会看到这样做的原因是因为：每次resize后的size大小的都是2的正整数次幂。</p>
+<p>继续往下到expand函数（建议稍作休息，下面这部分要梳理明白）</p>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190417/1555489316997662.png" />
+    
+    <figcaption class="p-2 text-center">1555489316997662.png</figcaption>
+</figure></p>
+<p>首先明确一点，这个函数虽然叫expand，但是它不止用于扩容，表的初次创建也是使用它</p>
+<p>首先看看realsize，realsize显然是把入参size进行调整后得到的一个值，那么到底做了什么调整呢？</p>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190417/1555489631563112.png" />
+    
+    <figcaption class="p-2 text-center">1555489631563112.png</figcaption>
+</figure></p>
+<p>很简单，调整为大于等于size的最小2的整数次幂（虽然代码已经很明白了，但还是为了避免有人没看懂这句话）即以下不等式</p>
+<p>
+        <img class="mx-auto" alt="" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAI4AAAAuCAYAAAD&#43;4SHmAAAGNUlEQVR4Xu2adahtVRCHv2cHNhZiY7eiKBaYfxjYXaBiYGOh2IGKHc/CxlZMVOxAbBE7sRUVVExs&#43;WQObM7b996z9z17ncN2LXi8e85ea81aM7&#43;Z&#43;c3sM4E8sgZqaGBCjTV5SdYAGTgZBLU0kIFTS215UQZOxkAtDWTg1FJbXpSBkzFQSwMZOLXUlhdl4GQM1NJABk4tteVFGTgZA7U0kIFTS215UQZOuzAwLfAX8HvT18rAaVrD6fafBbgSeA04uWnwZOCkM2yrJGXgtMqc6S4z7MDxfNsCZwC7Ao&#43;lU81QSFoA2BP4BVgJ&#43;B64FHge&#43;CdOOAWwOzA9MBdwHPBr06cfduBMFYpYO5TzTtMK6fP&#43;kwFLAocE5/B/QdDLWBZYH5gYQHCvLYFTgOOBGwM86wCzAx8CpwN7AB/0ImA8c4YdOOO52yDXGgUE&#43;0HAlMC5ES1/6/FQRo9DgYuBrwtr3PcEYEdgK&#43;BFQOC8DuwHTAccDfQqp8fjTDotA6e26koXWg5vDOwPfAZcADwH/F1RjGlpNeDCknWrA/dHJD4nns8PXB/fPVJRVq3pGTi11DbJotmAHYC9IrJoUFNHh4dUlSKvuzxS0nnRm&#43;nssRhwM/AscHCksS2CC&#43;0LLAQ8CfxRVWiV&#43;YMAjvl4p/DCLwBz&#43;S3Rf&#43;icXZK3C2BonhE4Cfi55GLmfZVm3&#43;IH4IBQqOuOAO4E3uhaZxrQMHMC7wOrALfHuiq6c&#43;58wG4BmmuBq4Avq24yQlSRBNuX6QbO4qGvh4EjAXVwFvAu8ATg85v6cIZRt0gNHI0lgfPfW3EyvfWw&#43;O67AIqedAkwc3jXscDdJTfZADgbuBdYHpBM7wzolcsB53d566rAaSHrgYgINs4km37fi9GLhFeZGvaOAG7T9nJ/CfODQYKvgP9&#43;N7593FfiLZn&#43;pumDpAaOZePCwDFh0MmBA4FtIgoZATYKAGiMTYG7AAHyUEnksPS8LCKH/GINYK2Q4b5FBfq9cyWcAqqTRiSUEk49XPmjDaOfaWjNiGiCr/HSt3CgqaM1sUw4yOdNA2Sk/VMCZ5oIqRLFw0Phyl8P8JmEz88&#43;uwEwjdm/MZVZRfi5OPR8085PBRDMGulKovheYbJRRWCYWvRO&#43;UdnuL/pxmpkLBB4PlOBEXIQ0UYHkjDb2zEtDWykBI6yTEHmYysNvfXx&#43;LvMYAtGr8KwbETw5d1oQ&#43;5kn0ReUARNMbwbLeQFfwKmyA2BdSNVfVzRCkV&#43;I5G9rqt0rrjdmNOXiDSkM3XS7JiLmpqQEjjewQhhg8ou8ApxKVOR1chXXZc0rWnozYGxSsx5Yg&#43;jSln4NjWeCMiVngo5yjOKSarrVj9uZfqSV3mHRyMNjqeiKrO13FAudc0wgMYDpgZOUSlyEqsrI5Ch1xKzMwSYIXmm6BhLmkca9jCswC4Cvi2ZpBwBKF/aBHipIS/sVw&#43;n&#43;3gzRH/G4sAyeyhGKuBsHQDZG7ivcHPTi3zGRlmxarIBdg9wZhh9RWDlqLSKilsE2C46sz8WHgimOYAXgmhbMdlhtQxv&#43;rWFrQCbd6ZliXfVrnHxfjqQ0dKo/EzhgdWjZP/pHnhZI0BLAZyOxy9d8r5pqejB2C4vphjDvhWTEeLlaKebYl4paMGcb8QSFEXQqGzXGtY7PRzTXqd6e7tLkxraTq&#43;GsanWr9FNpOUmtwW/6kWG5zIS&#43;0KzO0rqcDYcjcpjcb9eZFWekwI4yhAYerpEt5iObOwZfm3UFYfeKnG1mrJSkufYr5HUOsz5p8Z&#43;9mz8/ElEF8muRFWS3OEuPpf/3Bqt&#43;eIZ7La&#43;GnuNh&#43;uMpnw5mMb2R1a9GFrQ&#43;J7L85SlVvmh1aSkfCAjBXC8mP2HzYC544WcFYnGFDBGgG6D&#43;cxu8JsBlqsLUcUIdlSkOJuIKtmOseW0UUtAlXn2vMA&#43;8Q7pI2BR4NPoD0mQh2nYy/Ltt/xmpOFL1IFxnlTAGSaj5LP0QQMZOH1Q4v9xiwycala3PSB38sVq1SEfkbf0&#43;kOuqvsnnZ&#43;Bk1Td7RGWgdMeWya9SQZOUnW3R1gGTntsmfQmGThJ1d0eYRk47bFl0ptk4CRVd3uEZeC0x5ZJb5KBk1Td7RGWgdMeWya9SQZOUnW3R9i/7oEmPqqqYZ8AAAAASUVORK5CYII=" />   
+    </p>
+<p>取
+        <img class="mx-auto" alt="" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADgAAAArCAYAAAAtxEsrAAABYUlEQVRoQ&#43;3YsStGURjH8c9bWBSysPoHDGS2MYgyGRSDwWJ5FyOJSWIxGE1kEjaSwS6T8g9YDbJRunVs6g7ve869budut859zvP9fc8953ZbGn61Gs4nA/53w9lgNljzBPISrbmg0vaywdKIaj4gG6y5oNL2qjBYzLmEfaziobTLDgZUAdiHbUxjDa8d9F/6aBWApU11c0AG7GaaVdRKaXAUK&#43;jBAHbxGRs6FWAB1MYJhnCBLVw3BXAOxe55iQVcYQZ3TQDsxSbO8BbOv3Esh/uojKmW6C/EGM5xix18R6Uj&#43;U&#43;n4mA/wiLuY8MV9VMa7McxBsMXzHvTACdxg4NgcQJTYWeNxprS4Hr4Bp3HEzbwiOdodImXaHEOzobdczi8h4f4agrgCPbwEqBO8RETLvUmE5vlz/op38EMGCOBbDBGqilrZoMp044xVzYYI9WUNbPBlGnHmCsbjJFqypqNN/gDF4AlLH0rHlYAAAAASUVORK5CYII=" />   
+    的最小整数解对应的
+        <img class="mx-auto" alt="" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEIAAAAuCAYAAACcYs/JAAACFElEQVRoQ&#43;3Yy6tNcRjG8c9BrhkYiDIQI6L8B4QM5VIGruUWIcrAgAFiYmCkFAMlxNjMbUBhZOKSUpKJcokZuUUvv1N7787Zmay1ttW7a41WrbWf7&#43;953ssakr8/BIaSw18CCaI4IUEkiO6ikI5IR6QjRmyUGY2MRkYjo9Fviv4fasQk/MS3KteBQQcxDRfwBCerhDHoIKo0QdezE0RD7XMMlmJFsfli3C72f9NxROOwHVMwE0fxpUp71OmIeNdmvMMN/MJUHC5wtuJ5EbsM0/EKp7ADL9sCYkFxwpnSBYZ1zcIlfMAufEKAeIp9mIwj&#43;NoWECHqIR71CAqnhNA9WNlxfzaulFjcqRJCnV&#43;oJuI0lpfs3&#43;8RthGXsamIj9trsbMAmot7&#43;F4VkLpqxFgcwLZi/14QW3ARq3Adw&#43;Be4C7m4VpVEOp0RD8NAekEVmMdnpVvqeuxCJ9xFu/bDmIOriLqQLTJH1UKHu3ZdUVjtPfHvHAc0VGiY7xtAkLT0YhDCPvHFR3ldVMQmgaxBPtxsGkITYJYiL041mQcOh3YRI2Yj91lre7sBLFTxLzwoImI1A1iRpklzuFjj&#43;BYwCbgVttBBISYF26WvaJTb8wSa3Aej9sMYnyBcKiPyFjHN1Q9OA3qHNHE4Y/4zrprxMAI7/0jCaIQSRAJojsc6Yh0RDoi22e/3p01ImtE1oisEVkj/mHD&#43;Q0dcUwvM3hKpwAAAABJRU5ErkJggg==" />   
+    </p>
+<p>回到我们的expand函数，在计算完realsize后接下来便是判断以下条件任一是否被满足，若满足则直接返回错误</p>
+<ul>
+<li>
+<p>dict正处于rehashing</p>
+</li>
+<li>
+<p>表中的元素个数大于入参size（有人会好奇从resize函数进来这怎么会有这种情况，因此具体什么时候会有这个情况暂时先不说）</p>
+</li>
+</ul>
+<p>如果以上条件都不被满足，就判断是否d-&gt;ht[0]的size本来就等于realsize，如果等于则显然不必做后续的任何扩容操作，直接返回一个错误即可</p>
+<p>接下来便给我们的新表分配以下空间，做一些基本的初始化，做完这些之后有两种情况</p>
+<p>1、d-&gt;ht[0]表本身就为空，即我们为创建表而调用的expand，那么这时把创建好的新表的内容赋给d-&gt;ht[0]即可</p>
+<p>（ps: 如果你对为何此处n这个局部变量做一个简单赋值就可以完成这件事有疑惑，我不想多解释，你应该好好看看dictht结构里是存什么）</p>
+<p>2、d-&gt;ht[0]本身不为空，那么我们就要把n赋给d-&gt;ht[1]，并把rehashidx赋值为0，意义为rehashing开始！</p>
+<p>你能坚持读到这已经超越很多人了，接下来你会看到dict中最精华的部分</p>
+<h2 id="incremental-rehashing">Incremental Rehashing</h2>
+<hr>
+<p>可以先思考一下，你见过的很多实现或者你做的实现里，哈希表扩容后的再哈希是如何做的？</p>
+<p>有人会说：很简单，扩容时把旧表的逐个再插入希过去</p>
+<p>有没有觉得再哈希似乎是一个开销不小的操作，需要集中式的做N次计算，事实上我在开头放上哈希函数就是在提醒你，哈希计算并不是一个多么快的加减乘除，对于CPU来说至少不是一个像简单加一次这么快的事情，当然上上面这个hash函数的计算部分大概至少多少条指令就不在此估计了，起码我们知道把这个过程进行一千次并不是一个时间极短的事情，在并发极高的情况下，服务器CPU不应该被任何单一事件长期占用，你有没有想过怎么优化？</p>
+<p>Redis中采用了Incrementa Rehashing，常译作渐进式哈希，这个方案在零几年被学术界提出，在Redis中得到了极大的表现，渐进式哈希到底到底做了什么？</p>
+<p>集中一次的哈希的会导致CPU占用过高与时间过长，那么：</p>
+<ul>
+<li>
+<p>渐进式哈希就把这个过程切分开，也就是说渐进式哈希决定把对旧表再哈希到新表的这个过程不一次做完，而是分多次做，每次rehash旧表的一部分，但不释放，因为在rehashing完全成之前，所有增、删、查、改操作全部要综合ht[0]与与ht[1]这两张表</p>
+</li>
+<li>
+<p>新增加的元素在此期间直接插入ht[1]表</p>
+</li>
+<li>
+<p>删除操作要保证两张表的一致性</p>
+</li>
+<li>
+<p>查也要综合两张表来搜索</p>
+</li>
+</ul>
+<h3 id="rehash触发">Rehash触发</h3>
+<p>rehash有两种触发：时间触发、事件触发</p>
+<h4 id="事件触发">事件触发</h4>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190417/1555493670112901.png" />
+    
+    <figcaption class="p-2 text-center">1555493670112901.png</figcaption>
+</figure></p>
+<p>这个函数便是发起rehash，即对d-&gt;ht[0]中的一部分做rehash。注意这里的这个判断是为了确定没有任何迭代器在dict上，因为reshashing是可能引起迭代器访问出现某些混乱，所以有迭代器在dict上时rehashing不应该被进行。</p>
+<p>既然分散成很多次来做，那么怎么分？没错，就是刚才说的两种方式，一种是切分成1ms来触发，一种是事件触发，下面就是会触发rehash的事件：</p>
+<ul>
+<li>
+<p>每次插入一个新元素，执行一次</p>
+</li>
+<li>
+<p>每次删除一个元素，执行一次</p>
+</li>
+<li>
+<p>每次查找一个元素，执行一次</p>
+</li>
+<li>
+<p>每次获取一个或N个元素，执行一次或N次</p>
+</li>
+</ul>
+<p>如下会触发rehasing的事件</p>
+<p><strong>插入触发</strong></p>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190417/1555494800470043.png" />
+    
+    <figcaption class="p-2 text-center">1555494800470043.png</figcaption>
+</figure></p>
+<p><strong>删除触发</strong></p>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190417/1555494856570040.png" />
+    
+    <figcaption class="p-2 text-center">1555494856570040.png</figcaption>
+</figure></p>
+<p><strong>查找触发</strong></p>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190417/1555494891300106.png" />
+    
+    <figcaption class="p-2 text-center">1555494891300106.png</figcaption>
+</figure></p>
+<p><strong>随机获取一个元素触发</strong></p>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190417/1555494961567384.png" />
+    
+    <figcaption class="p-2 text-center">1555494961567384.png</figcaption>
+</figure></p>
+<p><strong>随机获取N个元素尽量触发N次</strong>（很有可能不需要N次rehashing已经完成）</p>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190417/1555494981902962.png" />
+    
+    <figcaption class="p-2 text-center">1555494981902962.png</figcaption>
+</figure></p>
+<p>以上就是所有rehash被触发的时机，这种做法可谓十分巧妙~</p>
+<p>下面看看Rehash函数本身</p>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190417/1555495308253874.png" />
+    
+    <figcaption class="p-2 text-center">1555495308253874.png</figcaption>
+</figure></p>
+<p>入参n的代表要对多少个桶进行rehash，也就是说rehash的粒度是桶。</p>
+<p>empty_visits用于表明在遍历哈希桶过程中最多遇到多少空桶就直接返回</p>
+<p>下面的过程代码写得非常漂亮，在while循环中处理完一个桶下挂的链表，每处理一个元素节点就把ht[0]-&gt;used&ndash;，ht[1]-&gt;used++，处理完整个桶后继续下一个桶（如果n&ndash; != 0 的话），当然也要注意d-&gt;ht[0].uesd是否为0，因为可能已经全部rehashing完了整个d-&gt;ht[0]</p>
+<p>进行完本轮后检查是否全部rehash完，如果是则释放d-&gt;ht[0]这个旧表，用d-&gt;ht[1]这个全部rehash迁移好的新表来取代它，同时记得把rehashidx置为-1，标志我们的rehash已经完成了！</p>
+<p>dict的扩容根本上由这个内部函数来检查，这个static函数是不暴露给外部使用的</p>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190425/1556180955391902.png" />
+    
+    <figcaption class="p-2 text-center">1556180955391902.png</figcaption>
+</figure></p>
+<p>上面这个检查是否需要扩容的函数，在每次计算一个元素在哈希表中的index时会触发（也只被这个函数触发，事实上哪个操作不会调用下面这个计算下标的函数呢）</p>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190425/1556181515792854.png" />
+    
+    <figcaption class="p-2 text-center">1556181515792854.png</figcaption>
+</figure></p>
+<h4 id="时间触发">时间触发</h4>
+<p>rehash被事件触发后，那么认为在一段时间内可以一直去进行rehash，直到把旧表的所有元素rehash完为止，全部rehashing完之后将ht[0]替换为ht[1]
+关于上面的说的一段时间：默认为1ms。比如发生插入时间触发rehash后，第一次rehash执行用时还不到1ms的话，那么就可以继续rehash，直到时间超过1ms，关于这一点在代码中非常清晰</p>
+<p>Incremental Rehashing 以一种相当巧妙的方式来降低了集中式Hash带来的CPU负载，其结合事件触发的设计颇为让人眼前一亮</p>
+<p>关于插入、删除、搜索这些基本操作的实现在此就不展开了，因为dict中这些的实现都比较trivial，没有什么需要特别关注的地方</p>
+<h2 id="迭代器的实现">迭代器的实现</h2>
+<p>值得一提的是，其迭代器中有一个“扫描”函数比较巧妙，所谓“扫描”就是遍历并且对其进行某种操作（i.e: 比如对每个value进行+1）。这个“扫描”函数在表扩容时也可以继续，虽然可能有一些key会被扫到多次，但是可以做到让在rehash后能比较“合适”的继续扫描已经很不容易了（此处合适即不从头开始）。这部分需要单独一篇才能讲得明白，所以就不再展开了，毕竟这只能算redis源码海洋中的一颗小珍珠，我们必须有所取舍。不过还是简单说一下，这个“扫描”的主要设计在这个函数中</p>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190425/1556180495881863.png" />
+    
+    <figcaption class="p-2 text-center">1556180495881863.png</figcaption>
+</figure></p>
+<p>其中fn是一个回调函数，在迭代器遍历过程中会对每个entry调用该回调函数，其类型如下</p>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190425/1556180781254136.png" />
+    
+    <figcaption class="p-2 text-center">1556180781254136.png</figcaption>
+</figure></p>
+<p>迭代器实际分为safe和unsafe，由dictIterator结构中的safe属性是否为1来区分</p>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190425/1556181275340342.png" />
+    
+    <figcaption class="p-2 text-center">1556181275340342.png</figcaption>
+</figure></p>
+<p>这二者的主要区别主要体现在，对于不安全的迭代器，我们存在一个“指纹”的概念，“指纹”由这个函数生成</p>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190425/1556181662997741.png" />
+    
+    <figcaption class="p-2 text-center">1556181662997741.png</figcaption>
+</figure></p>
+<p>这个函数的意图很明显，由一个dict的元数据生成一个“指纹”，一旦dict发生了元素的增删（rehashing过程中的迁移也算），这个指纹就会变化，那么对于不安全的迭代器来说，我们不允许这件事的发生，不安全的迭代器每遍历一个entry就会更新一次“指纹”</p>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190425/1556182358897093.png" />
+    
+    <figcaption class="p-2 text-center">1556182358897093.png</figcaption>
+</figure></p>
+<p>不安全迭代器在被释放时，若当前dict的“指纹”已发生变化，则会触发一个redis自己定义的assert（注意不是glibc的那个assert）</p>
+<p><figure class="max-w-2xl mx-auto overflow-hidden">
+    
+        <img alt="image.png" src="/wp-content/uploads/image/20190425/1556182524221289.png" />
+    
+    <figcaption class="p-2 text-center">1556182524221289.png</figcaption>
+</figure></p>
+<p><strong>完</strong></p>
+
+        </div>
+
+        
+<div class="post-archive">
+    <ul class="post-copyright">
+        <li><strong>原文作者：</strong><a rel="author" href="http://fhstack.github.io/">Fh</a></li>
+        <li style="word-break:break-all"><strong>原文链接：</strong><a href="http://fhstack.github.io/post/2019-06-17-redisyuanmapouxidicter/">http://fhstack.github.io/post/2019-06-17-redisyuanmapouxidicter/</a></li>
+        <li><strong>版权声明：</strong>本作品采用<a rel="license" href="https://creativecommons.org/licenses/by-nc-nd/4.0/">知识共享署名-非商业性使用-禁止演绎 4.0 国际许可协议</a>进行许可，非商业转载请注明出处（作者，原文链接），商业转载请联系作者获得授权。</li>
+    </ul>
+</div>
+<br/>
+
+
+
+        
+
+<div class="post-archive">
+    <h2>See Also</h2>
+    <ul class="listing">
+        
+        <li><a href="/post/2019-06-14-redisyuanmapouxidict/">Redis源码剖析——dict（一）</a></li>
+        
+        <li><a href="/post/2019-06-11-redisyuanmapouxiintset/">Redis源码剖析——intset</a></li>
+        
+        <li><a href="/post/2019-05-12-redisyuanmapouxihyperloglog/">Redis源码剖析——HyperLogLog</a></li>
+        
+        <li><a href="/post/2019-05-08-redisyuanmapouxitiaobiaosan/">Redis源码剖析——跳表（三）</a></li>
+        
+        <li><a href="/post/2019-05-05-redisyuanmapouxitiaobiaoer/">Redis源码剖析——跳表（二）</a></li>
+        
+    </ul>
+</div>
+
+
+        <div class="post-meta meta-tags">
+            
+            没有标签
+            
+        </div>
+    </article>
+    
+    
+
+    
+    
+    <div class="post bg-white">
+      <script src="https://utteranc.es/client.js"
+            repo= "your github repo"
+            issue-term="pathname"
+            theme="github-light"
+            crossorigin="anonymous"
+            async>
+      </script>
+    </div>
+    
+</div>
+
+                    <footer id="footer">
+    <div>
+        &copy; 2021 <a href="http://fhstack.github.io/">Fh&#39;s Blog By Fh</a>
+        
+    </div>
+    <br />
+    <div>
+        <div class="github-badge">
+            <a href="https://gohugo.io/" target="_black" rel="nofollow"><span class="badge-subject">Powered by</span><span class="badge-value bg-blue">Hugo</span></a>
+        </div>
+        <div class="github-badge">
+            <a href="https://www.flysnow.org/" target="_black"><span class="badge-subject">Design by</span><span class="badge-value bg-brightgreen">飞雪无情</span></a>
+        </div>
+        <div class="github-badge">
+            <a href="https://github.com/flysnow-org/maupassant-hugo" target="_black"><span class="badge-subject">Theme</span><span class="badge-value bg-yellowgreen">Maupassant</span></a>
+        </div>
+    </div>
+</footer>
+
+
+    
+    <script type="text/javascript">
+        window.MathJax = {
+            tex2jax: {
+                inlineMath: [['$', '$']],
+                processEscapes: true
+                }
+            };
+    </script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML' async></script>
+
+<a id="rocket" href="#top"></a>
+<script type="text/javascript" src='/js/totop.js?v=0.0.0' async=""></script>
+
+
+
+    <script type="text/javascript" src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script>
+
+
+
+
+    <script src='/js/douban.js'></script>
+
+                </div>
+
+                <div id="secondary">
+    <section class="widget">
+        <form id="search" action='http://fhstack.github.io/search/' method="get" accept-charset="utf-8" target="_blank" _lpchecked="1">
+      
+      <input type="text" name="q" maxlength="20" placeholder="Search">
+      <input type="hidden" name="sitesearch" value="http://fhstack.github.io/">
+      <button type="submit" class="submit icon-search"></button>
+</form>
+    </section>
+    
+    <section class="widget">
+        <h3 class="widget-title">最近文章</h3>
+<ul class="widget-list">
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2020-06-27-sync-mapyuanmayuedubiji/" title="sync.Map源码阅读笔记">sync.Map源码阅读笔记</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2020-06-02-quic/" title="QUIC">QUIC</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-06-17-redisyuanmapouxidicter/" title="Redis源码剖析——dict（二）">Redis源码剖析——dict（二）</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-06-14-redisyuanmapouxidict/" title="Redis源码剖析——dict（一）">Redis源码剖析——dict（一）</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-06-11-redisyuanmapouxiintset/" title="Redis源码剖析——intset">Redis源码剖析——intset</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-05-12-redisyuanmapouxihyperloglog/" title="Redis源码剖析——HyperLogLog">Redis源码剖析——HyperLogLog</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-05-08-redisyuanmapouxitiaobiaosan/" title="Redis源码剖析——跳表（三）">Redis源码剖析——跳表（三）</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-05-05-redisyuanmapouxitiaobiaoer/" title="Redis源码剖析——跳表（二）">Redis源码剖析——跳表（二）</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-05-03-redisyuanmapouxitiaobiaoyi/" title="Redis源码剖析——跳表（一）">Redis源码剖析——跳表（一）</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-04-20-nihuanzaizheyangxiekuaipai/" title="你还在这样写快排？">你还在这样写快排？</a>
+    </li>
+    
+</ul>
+    </section>
+
+    
+
+    <section class="widget">
+        <h3 class="widget-title"><a href='/categories/'>分类</a></h3>
+<ul class="widget-list">
+    
+    <li><a href="http://fhstack.github.io/categories/C/C&#43;&#43;/">C/C&#43;&#43; (1)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/Golang/">Golang (6)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/linux/">linux (3)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/%E6%9D%82%E8%AE%B0/">杂记 (1)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB/">源码阅读 (17)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/">算法与数据结构 (2)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/%E7%BD%91%E7%BB%9C/">网络 (1)</a></li>
+    
+</ul>
+    </section>
+
+    <section class="widget">
+        <h3 class="widget-title"><a href='/tags/'>标签</a></h3>
+<div class="tagcloud">
+    
+</div>
+    </section>
+
+    
+<section class="widget">
+    <h3 class="widget-title">友情链接</h3>
+    <ul class="widget-list">
+        
+        <li>
+            <a target="_blank" href="https://www.github.com/fhstack" title="我的Github">我的Githhub</a>
+        </li>
+        
+    </ul>
+</section>
+
+
+    <section class="widget">
+        <h3 class="widget-title">其它</h3>
+        <ul class="widget-list">
+            <li><a href="http://fhstack.github.io/index.xml">文章 RSS</a></li>
+        </ul>
+    </section>
+</div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

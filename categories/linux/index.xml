@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>linux on Fh&#39;s Blog</title>
+    <link>http://fhstack.github.io/categories/linux/</link>
+    <description>Recent content in linux on Fh&#39;s Blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-CN</language>
+    <lastBuildDate>Fri, 22 Mar 2019 06:36:51 +0000</lastBuildDate><atom:link href="http://fhstack.github.io/categories/linux/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>fork后发生了什么——文件篇</title>
+      <link>http://fhstack.github.io/post/2019-03-22-forkhoufashengleshenmewenjianpian/</link>
+      <pubDate>Fri, 22 Mar 2019 06:36:51 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/post/2019-03-22-forkhoufashengleshenmewenjianpian/</guid>
+      <description>首先思考一个问题，我们知道，fork函数会复制父进程的所有打开的文件描述符给子进程（vfork不会复制），对于父进程打开的所有文件，子进程也可以通过句柄值相同的文件描述符进行读写。那么，父子进程同时操作一个文件，这个过程是并行独立，还是互相影响？父子进程同时操作一个文件时，是什么</description>
+    </item>
+    
+    <item>
+      <title>fork后发生了什么——内存篇</title>
+      <link>http://fhstack.github.io/post/2019-03-16-forkhoufashengleshenmeneicunpian/</link>
+      <pubDate>Sat, 16 Mar 2019 10:23:17 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/post/2019-03-16-forkhoufashengleshenmeneicunpian/</guid>
+      <description>fork出来的子进程完全拷贝了父进程的地址空间，其中自然就包括了数据段、栈、堆等，我们常用的一种方式是：在fork出来的子进程中调exec函数族来进行后续工作，exec函数族本质上都是execve系统调用，这个函数族会丢弃现存的代码段，并构建新的数据段、栈、堆。在这种背景下，fo</description>
+    </item>
+    
+    <item>
+      <title>fork后发生了什么——执行流篇</title>
+      <link>http://fhstack.github.io/post/2019-03-16-forkhoufashengleshenme/</link>
+      <pubDate>Sat, 16 Mar 2019 08:56:20 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/post/2019-03-16-forkhoufashengleshenme/</guid>
+      <description>首先我们先从这个最基本的问题开始: fork为什么&amp;quot;好像&amp;quot;返回了两次? 确实只能说好像，因为函数的栈帧上是不可能两个返回动作的，汇编层面决定了压栈出栈的动作值必须是成对的，一个函数永远都只可能返回一次。有两个返回只是表象，执行流被分成两份同样也只是表象，那么本质上</description>
+    </item>
+    
+  </channel>
+</rss>

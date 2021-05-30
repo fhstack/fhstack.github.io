@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <meta name="referrer" content="no-referrer-when-downgrade">
+    
+
+    <title>fork后发生了什么——执行流篇 | Fh&#39;s Blog</title>
+    <meta property="og:title" content="fork后发生了什么——执行流篇 - Fh&#39;s Blog">
+    <meta property="og:type" content="article">
+        
+    <meta property="article:published_time" content='2019-03-16T08:56:20&#43;08:00'>
+        
+        
+    <meta property="article:modified_time" content='2019-03-16T08:56:20&#43;08:00'>
+        
+    <meta name="Keywords" content="golang,go语言,redis,mysql,mongo,kafka,rocketMQ,消息中间件,分布一致性,算法,操作系统">
+    <meta name="description" content="fork后发生了什么——执行流篇">
+        <meta name="author" content="feihao">
+        
+    <meta property="og:url" content="http://fhstack.github.io/post/2019-03-16-forkhoufashengleshenme/">
+    <link rel="shortcut icon" href='/favicon.ico'  type="image/x-icon">
+
+    <link rel="stylesheet" href='/css/normalize.css'>
+    <link rel="stylesheet" href='/css/style.css'>
+    <script type="text/javascript" src="//cdn.bootcdn.net/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+    
+    
+    
+    
+    
+    
+        <link rel="stylesheet" href='/css/douban.css'>
+    
+        <link rel="stylesheet" href='/css/other.css'>
+    
+</head>
+
+
+<body>
+    <header id="header" class="clearfix">
+    <div class="container">
+        <div class="col-group">
+            <div class="site-name ">
+                
+                    <a id="logo" href="http://fhstack.github.io/">
+                        Fh&#39;s Blog
+                    </a>
+                
+                <p class="description">已识乾坤大，犹怜草木青</p>
+            </div>
+            <div>
+                <nav id="nav-menu" class="clearfix">
+                    <a class="current" href="http://fhstack.github.io/">首页</a>
+                    
+                    <a  href="http://fhstack.github.io/tools/" title="工具">工具</a>
+                    
+                    <a  href="http://fhstack.github.io/archives/" title="归档">归档</a>
+                    
+                    <a  href="http://fhstack.github.io/about/" title="关于">关于</a>
+                    
+                </nav>
+            </div>
+        </div>
+    </div>
+</header>
+
+    <div id="body">
+        <div class="container">
+            <div class="col-group">
+
+                <div class="col-8" id="main">
+                    
+<div class="res-cons">
+    <style type="text/css">
+    .post-toc {
+        position: fixed;
+        width: 200px;
+        margin-left: -210px;
+        padding: 5px 10px;
+        font-family: Athelas, STHeiti, Microsoft Yahei, serif;
+        font-size: 12px;
+        border: 1px solid rgba(0, 0, 0, .07);
+        border-radius: 5px;
+        background-color: rgba(255, 255, 255, 0.98);
+        background-clip: padding-box;
+        -webkit-box-shadow: 1px 1px 2px rgba(0, 0, 0, .125);
+        box-shadow: 1px 1px 2px rgba(0, 0, 0, .125);
+        word-wrap: break-word;
+        white-space: nowrap;
+        -webkit-box-sizing: border-box;
+        box-sizing: border-box;
+        z-index: 999;
+        cursor: pointer;
+        max-height: 70%;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+
+    .post-toc .post-toc-title {
+        width: 100%;
+        margin: 0 auto;
+        font-size: 20px;
+        font-weight: 400;
+        text-transform: uppercase;
+        text-align: center;
+    }
+
+    .post-toc .post-toc-content {
+        font-size: 15px;
+    }
+
+    .post-toc .post-toc-content>nav>ul {
+        margin: 10px 0;
+    }
+
+    .post-toc .post-toc-content ul {
+        padding-left: 20px;
+        list-style: square;
+        margin: 0.5em;
+        line-height: 1.8em;
+    }
+
+    .post-toc .post-toc-content ul ul {
+        padding-left: 15px;
+        display: none;
+    }
+
+    @media print,
+    screen and (max-width:1057px) {
+        .post-toc {
+            display: none;
+        }
+    }
+</style>
+<div class="post-toc" style="position: absolute; top: 188px;">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+        <nav id="TableOfContents"></nav>
+    </div>
+</div>
+<script type="text/javascript">
+    $(document).ready(function () {
+        var postToc = $(".post-toc");
+        if (postToc.length) {
+            var leftPos = $("#main").offset().left;
+            if(leftPos<220){
+                postToc.css({"width":leftPos-10,"margin-left":(0-leftPos)})
+            }
+
+            var t = postToc.offset().top - 20,
+                a = {
+                    start: {
+                        position: "absolute",
+                        top: t
+                    },
+                    process: {
+                        position: "fixed",
+                        top: 20
+                    },
+                };
+            $(window).scroll(function () {
+                var e = $(window).scrollTop();
+                e < t ? postToc.css(a.start) : postToc.css(a.process)
+            })
+        }
+    })
+</script>
+    <article class="post">
+        <header>
+            <h1 class="post-title">fork后发生了什么——执行流篇</h1>
+        </header>
+        <date class="post-meta meta-date">
+            2019年3月16日
+        </date>
+        
+        <div class="post-meta">
+            <span>|</span>
+            
+            <span class="meta-category"><a href='/categories/linux'>linux</a></span>
+            
+        </div>
+        
+        
+        <div class="post-meta">
+            <span id="busuanzi_container_page_pv">|<span id="busuanzi_value_page_pv"></span><span>
+                    阅读</span></span>
+        </div>
+        
+        
+        <div class="post-content">
+            <p>首先我们先从这个最基本的问题开始:
+<strong>fork为什么&quot;好像&quot;返回了两次?</strong></p>
+<p>确实只能说好像，因为函数的栈帧上是不可能两个返回动作的，汇编层面决定了压栈出栈的动作值必须是成对的，一个函数永远都只可能返回一次。有两个返回只是表象，执行流被分成两份同样也只是表象，那么本质上是怎么回事呢？</p>
+<hr>
+<p>fork函数调用后，创建PCB并填充后，子进程会完全拷贝了父进程的地址空间，栈、堆、代码段自然就都被拷贝了一份，所以答案就是：<strong>子进程的栈是从父进程那儿拷贝过来，那么其函数的栈帧就是完全相同的两份，不过是各自在各自的函数栈中返回了</strong>。</p>
+<p>父子进程会被我们根据fork的返回值分成两条执行流，子进程之所以是从fork函数之后开始运行的原因当然也就在这了：因为子进程的代码段、上下文环境完全拷贝的父进程，父进程的fork函数返回点在哪儿，子进程就在哪儿，返回后根据我们的代码控制父子就分开了，关于这些若是不理解到这个程度，恐怕很难却理解父子进程里的一些奇怪现象。</p>
+<p>再想一个问题，linux进程的执行是由操作系统来进行调度的，那么<strong>子进程被fork出来后，是父进程先执行还是子进程先执行呢?</strong></p>
+<p>一般情况下我们总是用sleep等操作来保证另一个进程先执行，那么谁先执行是完全不可预料的吗？其实不是，从linux内核2.6.32开始，在默认情况下，父进程将成为fork之后优先调度的对象。采取这种策略的原因很简单：fork是父进程发起的调用，因此fork之后，父进程在CPU中处于活跃的状态，并且其内存管理信息也被置于硬件内存单元的<strong>转译后备缓冲器(TLB)</strong>，所以先调度父进程无论从减少上下文切换、CPU让出等方面都可以提高性能。linux内核从2.6.24开始，内核采用完全公平调度（CFS），用户创建的普通进程，都采用CFS调度策略。对于CFS调度策略，内核提供了如下控制选项：</p>
+<p>
+        <img class="mx-auto" alt="" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAwAAAABBCAYAAABmbcPaAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAEYwSURBVHhe7Z0HeBVFF4a/m957770nJCQhBAi9hBp6LwIKiAXs4m/BhoodEVSaKIqASFOqgdB7JxBaSO&#43;93dyUe/7ZvZsGCQRERJnXZx/M7uzeszNzzpwzMzsjIwY4HA6Hw&#43;FwOBzOI4Ga9C&#43;Hw&#43;FwOBwOh8N5BOABAIfD4XA4HA6H8wjBAwAOh8PhcDgcDucRggcAHA6Hw&#43;FwOBzOIwQPADgcDofD4XA4nEcIHgBwOBwOh8PhcDiPEDwA4HA4HA6Hw&#43;FwHiF4AMDhcDgcDofD4TxC8ACAw&#43;FwOBwOh8N5hOABAIfD4XA4HA6H8wjBAwAOh8PhcDgcDucRggcAHA6Hw&#43;FwOBzOI0SrA4DqkkzseTMcMplMPNSMPdDp6XVIk64/rBD7r7a6EuUlxSirUKBGSdKV5iEooaypREV5MYqKiqSjBOXyKtSQ8DQV1xf3rc8L4dDQM8Lw5YnS1YcXRe5VrHo6qIns5kE98f7OLClFUy6ueQGDA9XRYfrnOJR2&#43;7x7UAhlVKOoQGkxK5fKatSycvmnuLrlXYwL1WioB66D8fHWeJRI15uDquPwgos1ur8dh1JFLahqKyaxezt/dU1K8fAh1HyiGshLi1BcXI6qO&#43;jRX0X4ravLJsDe1BAd39&#43;LMpZP/0WIlMg7/jNeGeAOpx6PY&#43;XxAunKw49QRsm/voTu/lYIfX41zqTLpSvAnjlesDaUYez3iaiofjjsxv2m5OJW/G&#43;IWxNb6tT3Gaw9XSilaB1CPl78rBeMdPXQ5bPT0tm/l5OLhiPSRQ0DP9qNy/kPrnzo6u&#43;YOy5MtJNvrjmFu8upuyf/8l58OEATLpGDseikUjrbeu6UTzeWj2Dl1mD/haPTl1ekq62H0g5jxfPdoG7XBVO/jEO&#43;dJ5ze1S&#43;QAa2fz8HHf1s6svAc9yH2He9TErVlP3vhP/jtkmQu6qiFMXMt5RXMx/gH/Jh7n4EQKYGTebsmhgbwUBXEzLp9MNLKRJ2foXxbfwwYOZinLiNxREMsUKeiGuHP8fT09shINAVLi4ucHbsjslzf8CB7JJ6x0dNSx/GxsbiYaCjLp77V8DKT0vXUCW7oQF0tf6Ng0D5OLD4aQzwCca0L3ficql0&#43;h9ATUMHeoZCXupBS6N1eak8tA/r5TVwcHeGupoaandvxw/QQqCPm5TiYUQJRdk5fNDFDm7&#43;E7AuVTr9N6Gs2ocfFhyAvGoonhwfAG3tf5GO3QWkTMWJuFjs22mIiLC&#43;6BRuJl15&#43;FFWn8CGH/YhOTEcY4eEwcleV7ryiKCmCR19I9GWGhnoMv2/t9ZQWRWLr945BFIfj9lTvKWznIcBddbOGxiZQF9bA&#43;rNFK/oB5iYiHXAkAUCnAeMMh9HVn6A91/9BCcSy2Ak&#43;WRGejpoqTnW0BH8HxPoMd/nn/NfM7HppT7ws4/CW9uuo7RGOv2AuWvvT9/OC2O/O4eClFPY/vFg2Evn/&#43;0QalFRuBdfvjgZw&#43;edhX30Chw/lyGOAFzcPQmJm15D3ye/w6X0MihZtOY69df6EYK4N8Olpzz8aFu4Y&#43;THB0W5005vxSfjeYPzV3Dv&#43;xKWxOWj8MgKPNnfXzrbMoQaXL&#43;aAKX6EPSKMoKmZg0SLlyAuvEMDO/1bwzG7j9Elbi8bAnWZpcheO4T6GXG8km69l9C6HAoOHcSu/7ci6yukeg1tCvcpWsPO0RVuPHrGmy8kgrTx4eil4cD/j2hy/3ByKcX3lh1RrSlibsWYnoPR&#43;lK6xHqevzXC/GTQhORHz2FXrra0hXOw0Dw4yux61wBfpndGR5mt7qLzuO/R2pmnlgHTn/aUzrLeWAUJrL28xoSCyIw9bXNuJhaKJbFySWz0cHVQErUlMiXd&#43;NKWiGWjnWBrubD34X9d/K3eBy1inIU5qQhNTsfpYpqVFYUIzM9FUlJSUjLKkBpZQ0aD8bVKIqRl5uK5OQkMU1SRgZyyypR28w0A2HIvKo8DxkZUtrkZKTk5KKIPbMOYXilurIUeelCmhSk5xSgoqYWlWUFyEyR7mNHZl4x5DWq36iVJ2HD3PewZps1xs56A8&#43;P7wBbU1WPln34M9jwZjTs9r&#43;Jub&#43;nQl4tnr5rlLVVKC/ORlqaJENqKtILilBR3fz0BmLpK4rzkJOWghRJ5vT0bJTKWf7dPGRUXQ15ST4yMxveLykpC9mFctyjuLdSK0dpQSbSxDxMR3axAtW1zQ9dVcsLkJWV3CBLZiYKWsg4UtYy2QuRnZ5enz4lJQ35BSWoqlXljVCmlaUFyE4Vrqciq6AMlbU1KCvMRnpdvWFHdjF73xZk&#43;qcQnP7yfJZvopzHsHXbScht9aCZncHK9TA2bjoJtX5t4Cq&#43;Qx4aJlLcHcTyQ1FWhLyMVKRK&#43;ZGWlomiEvmtU99qVGlzslMa9C4pAxm5ZeIoV11qYrWnhNWp5KRkJKewgLiKhco1Fcirq8PsSE3PQrHi/uV5TVkcVn5zGCWKvpg2yg9Ghg3uf0We6jfzKkhlB0QZBNmyUVTWfDeKsroSxblpSMnIQUllNRTyEuRkpqlkz8hFCauXjTWwtqoM&#43;XksfZ2tYPUyp7SZPJSg6gqU5GVKsqiO7OxCZidunyfK6hScO7ILB/Ybo327aHSLMJeuNFBbJUdJfi7TuZT6Zws2oKRC3sQGVJfmIDWF6VteOZQ3yUlKJcpzWRmmpLL3aNBBJasvd9K7lqiVn8KGnw8w56cdhvaNgKNt63r/K1g&#43;Cb&#43;TnJyFkkb5I9j1GnlpI1lSkJaeh&#43;IKRZOyqaNWUYr87FSk5RSinLUxcmYbMpidFPMni52rqhXbGEVxlmivckrYc6pKUVhf3zOQV978lBBBltrKMuTUy5KM1LRcUZb73VFXU7oTS748Apn&#43;BDwz3uuWkS5haoCgp7msTVTJIuRdCnLziqBgOnwzpFTpdT6r33U2IDWV6S2zAS3axdoKFAv1XcyXdNb21jTb9gooq8obyaLSu0LWVjeXL0J7V1rA8l9My9q6LNbW3cepfDfrXTLzBW6rdyzgrizNRZZouwS/oJjVk1vT1lYy&#43;5DRoG/CcT/bFWVtNWvXWbslPpvV84wClMnvX74ItkCo45msfRbtt6RzQnllFaj8AUH3S3KYvqexulHZ8F6Cz1FemIUkZutziuT1ulfNbGYu87kycln&#43;KipRXqTSq6SkNPbMCmYvms&#43;bGqZHBdlZYtnU5WUmC5gqmL9yr1CtgsmYo6pXKZnIZ3Vbaa0HDbMKFOSrficttxiV1Q36XVOej/TURv4IO3LLqm/1oyQEGyAvzBBtZh5LV1sjZ/ZGZQ&#43;SU9PZbza1BbXVCuaLMP8rTdWuCIeq7S1j7YZKDrGTmelDuphvqcgtZT4uVaM4O61J/uSVM9vVglz3HWZgWkVVcQbtfiOM9O19aNKqJOls8xScWkOvDXYlxz4z6etdx2jrijnUzstKeCNyjphCC3ZdoQLWmgpUlxfQyS1v0IiBNqSrK/odBH9/GvTFerqQUkC1zBI1piL3Ov2xeDgFBamp0mppkUnvAfTCr0cpr0guplFSKV3du5imeEtpWjgip31Gf95QsvQ1lLz5TeoW5ECD399C53OFc9VUVpRLzCjSjRtplH1yEcXYmpLBmGVUyKxGY07Ma0/quoY0bNl16cytsIacMi/tpAWvdyZnZ5lKBktL8p48i1YcvEIlNz1TWVNBBfG7admrw6mvvTEZSzJ7eXWn&#43;WvPU3ZZDZNRSktVVHx0H/349iQKCal7Z3VS12xPPWeupoPZBVQhpW1M6bV99PUUXzIL7EHv7ciUzjYl/pfnKSZAjSKnzqM/dqyhT6eFkL2x8Hw36v7KNjqeWknVN5VRVUk27ftxCnVor0Pq6iq5ERJCU37cR5n5TSVR1lRRYfJ5&#43;undmdTd01OSHWRu7krjpr9Ley4lkkJIR4V0aOks6uMg5V0Lx4APYykhr6k8DwJl/BqaFRNI6i4xNP&#43;PC1QsnRdQUhqtnRlJ7kbNy9z4UFd/gnZI990NyloFlSadpG1fzqJRAbZkIz3PwSGEZr2/nhKyFVRbl1ao2xdO0pbPn6feXcwa9A7&#43;FDDoC9p6PYNKalWplXSVPo9Ur5evucM2sAt9cqTu6X8NpbKS4r8eTV7WFtRp7lbKKmmqF388oSX&#43;5hPrcuiPhcwOiDJokb5xD3p&#43;wRFKL1TZgMYI9fzDMZ5kFS6UzXGK/eUd6h3ioJI9YBB9uOkCZVWr6kxNRSHFx35GE4Y5krFYz9nB6mX0/FV0/HouVTEvoDHKqhJK372C3hjdVpJFKENN6trrKVp7spjldPMolTWUe2o9vTXIk1x6zaBvj&#43;RJVxqokRczWX6iN8cOIlczM5Us7BBswLtLf6P00vL6Mk1ZM5m8zHVJc9h3lFIkaIwKJYsGFEUptGSoJulaeNFja5NV55ne5V470aLeHbiaLOpdcyiVCkpc/wZ18bal0KeX0qGkMulKA7tfZfltABqz4jqVs4hSoDw3g5azfJLJ9MnOezz9mKQ6z5wRqmJ2/diq&#43;Y1kMSZ772E0Z/l2ii&#43;sYBa6KXmHl9EzfZzIdfAr9H3cEfrl0&#43;kU5Gou3usW9TQtOZBEJayNOfxxT5Z3Mhr6&#43;T6Wl5/QzB5mpK8lPD&#43;Ihn19mYol2eoQZKkuSKHz67&#43;kPj4&#43;kiwGZOU8UJTlbEF5s2VaJ49j9NO05lSBdPb2KJVyOvvpALI1NqVeC89QaWXTt1Qqa1l7l0SbvniRBrI2sa6MdHVNaOCIl&#43;j30wlUKaUVEGxAedo50QaMZ/W7zgbY2gaINuBcRmV9fTnx9TBqz9qhAe9toYO7vqP/jXAlE9EO&#43;NCgj09RYkG1WHcaoyzPo2t/fENDg4IkWQS960JPs7b6WE5pk3ypa&#43;8&#43;mtKenMW0rK2LYG3dl5/T80ODRTv5xi8nqXU5dSvN6Z2Wlv4tepeXEEcf9Ndgfkc/&#43;vSPE7Txo8EUIba/ZuTday4tOVxElZIvUkdO3Jc0JFzlr9QdrWlXri2KFtN2/OKydOZWVHq3n5a83IPcxGcbk2ubafTpJ0vo8&#43;mdSM22M035Yg/dag1aT&#43;Ky4WSoo04R8w5TUUacmEeCXOqautRp6o90Vq5kuniDvhqqQeZubeid/Q02TZl5mn57vTepWYbTiHe3U51XkLhrAY1tq05tR79C67dvpEWz2jO9EuR3poipK2nv9QqquskPqC7NpaNMj57o0pHpnMpuC0fbtqNp&#43;Z7jVC6lu1uUBado9WtDyEV6XnOHx9gPaO&#43;1UukOotR1T5OPnX6TNI1t083UVJaI/q62qR2N//4MXTn&#43;E03o7iXeZ2DlTVPm76Krlap7axXllHRiO3357HgKcVC1K8Ihtr1vf0vxmblifVRSFm16uTcFmDbI0NwxaW1&#43;i3Ldb/7WOQdUmYZ9Kz/H1wvWoFTLFm3atIFB0Z/Yt/84UvPY9epixP/yOibP/BxbDmvB2S1ITONbmYu4F0dg5LQlSC6qqo&#43;GSJGLnW8PRv&#43;Zv&#43;FGgbeYNsjHC&#43;bx&#43;7F86nA898lusYdSGNjQ1jeHo08bliYQ3q62MNbSgL6pHTwDhHOqw9PBEgZaLHl1Kk4ePoMco/4Y0MUPbhYylOccx4p5z6BvzBAMiHkKr8&#43;PRSaL&#43;lSS3B3MWiHvwg589&#43;p0JuMpKNT9xN8PsDBC2eYleOPxF/HdxvMol0YjhGHhgnO/4d1nnsXzn&#43;/GKQ07OASqZNbQSMWXX/2ME5n5jSLQVKx6bzRe&#43;eEIKuWB0vv5w981C&#43;d/morBE17F7/kKKe29UZ64Fws&#43;&#43;B5rDtTAwsELrhbZOPDxU/h66wmklTfkCinycWzBRPR9fCXOJDvBz18lt09RCtZO6YNhs9cjX&#43;otFvqZ5TkJ2DpvBCa8uxxnqpkLKsreBnZ2uji6cxcWLzoI1aex6tA3s4ebXzC7HgB3OzPoa2jBxNYVPlLeCIcr8zq0H7qpmJowcfCEb2Aw/JzMoK2pB2t3fwQGsbruYAg1mR7sxboqHA4wlO5qLcJ0jPK0Y/j&#43;3Zcw9YWl2JlvABOpnhsby7Fx8ybsOH0VDZ9E5WLr0hfw1ncbkJjlwPxb6bd9K1Ec9yIGxkzDD8lFUlotWErXgwK9YK0rg7qmMZz8pHvY4e/tAUs9KflfpLpoD5ayMi9DDB4fHgzjRr3/jclfPQOjPjyFakGuIC/YGZ3E4jdGoN872yUbcCtUlYej6xbjq/nLkVJlLspuXnMehw/sw6U0dr26FAkbPsBzz76HtXuUsLRT6ZIfynHk9UmYMG0hTiYW1n90zkILpO/6GH27T8Z7m7NQ5qvKj4AAX2RkHsC8T9YhXUx5K8qqdJzavxU7YnXRqeMA9Lyp918YNcrYsxivPP8MPtx6GDWWNghkzxaeL9iAZW/&#43;ii1JBfVl6jBiJiY5mkDtty&#43;x6HSxdJZRq0Dx6UX4YoMazJwmYeYIJ/Zspah3698d3aLeLfn&#43;uKR3t1JTegyb1&#43;5Gan5HjBoQCS9nfelKy5SkXcfy6X0x5ZcEuIWOxxe7fsB4Z5nY01ZbloyDnzyJSVPmIYHpiiBHm0AH6FcewNevPo1XPtyERHkLZSpPxs7FH&#43;GblbtRY&#43;Ag3qubvRGx&#43;88jq64KM4pO/4RnZ63GkVwHeLi7w8HgAn57aig&#43;P9dgF1l7KMpyegGrW6PewNkaNZUsQS4wUzshyjLrjTW4WtG8LHdLVeFOfP3FYdTqjcXz472gc1Pvf21lAY5&#43;PAiDX/gCe0sq4SuVkaenIxJO78Hnc3fggpSWuVuiDVgz/xXRBmzJ1K63AebmNaIN2HIovpENUFF8/lfM/d8q7LhkCGdXDziZJOKPl8diwYEUNO6sJypB6vLpGDzwRewrq5byxYfZ20SsevtJTBSmx0rtgNBDW9fe/e&#43;XS1C4&#43;bP0dtAs&#43;R2fLP4SPx3MFNPdKy3pnY&#43;Pe4t6V5V/HXt&#43;&#43;gbzl19FpZEvvB3VkbV3IZYtWITD2U173zX0LeDqFSA&#43;08veGHr3af6hMDpTlnoSK/83GdNZuZe5Cn6ACwyq92DZd&#43;/g0z&#43;SpJT3Byo6gfeGjcCqM7XiuwT4eqL4yJvYcOTe66885QiWfLocK3eWwcjWG25WBTi/8nUs3rAP10saetwJVbjy41OYMPNVrEpIgZ23jyiDcFRUHMNbI1ciTkp716jrwpS1&#43;6I&#43;BHjC0cIQmlpGsHb2qreRvk7WzLdrcG81jR3g66&#43;y5x42ui1&#43;H3ALSgWyzv6Oj596CUeydMX73axkuHaIyX9B8GBqURC/HQv&#43;NxUvLNuMTB0DBEgyCG3vlmVbsDruOlRLrGjA2M6d&#43;SuCD&#43;MHF3M9aKrpwNLVR/QFhHuEw8lEnfkE4g1/P6o44M7cywiAtbUDefaYQLOX7qG0YlVEk3d5E&#43;3af5pSWDStuPoLPdPFhwyMbCl67kZKLlD1OaUdW0Az2tiRnrovvbonh&#43;RS75z8&#43;NvkL1MjbYdAenJtiniuWl5Ih398mnpbmpJL6GO0IqFpv5WSiunC7/NpsIsddZn0OR1uJopXpv5Br8eEkm3/ufT72WzmrxfR1v91Jh&#43;3KJq38zrlKzJpw7Q2ZKGnRpr3MAJQW3KDtn8ymlw09cip6wRacihXPF&#43;cdoRWzRlE/oYO1HXaAtqTruq3UFacpAVjO5Ozlgk593yVFm5PprxyldxZWedo4cI1dDozv76XQ0mptOaj6fTe7gRKru9Vq6bKS9vp897mpMWi2H6LLonnG3M3IwDQC6Shc9fSmaxSUuZcpLg3BpCPhSZ5TFtGx5MbIu3Kc19QH1sTUjd1pjFLLlC5QtW7kLTvXRpia0g6Bh3o83Oqfith5CL78mZ6MUiDTDwj6MmNJyhHvMJkK82iY7HbaMOmQ3RzripZqj2fT6bONq409sPfKV6qW/eKMN5TW1tOZQVJdOnSaTp9mh1nz9HFG5mUX6ZgUgppakhRVkgFOXm39BoK3G4EoDFXl41m9aonzT&#43;USSWsXsd/1pmMzPrQMqnc7gWlIpFiF82gIA19smgzkl5dcYaSClXPKyi4TuvWbaLYM9eorpSE/Nu58i36eHMcnb5aSQqFVGfSjtOGKf6kpymjwLcOiOfqEN5fXnKS3gjRJTP7IbTqL8jbEkplGZ1b9Bh5WtlQ93k7KFGyB42pGwGQmbvS9DWHSLACgg04vf5F0QbYeA27xQbUjQCYmlqSV9fR9MRX2&#43;l6gUr&#43;wqS9tGf/EbqUzmrjjY00Z0AwmelbUvdXVtHJFFUfVdbZH&#43;i5Dq5koulNM346S4VSz4&#43;y&#43;Fcab6xHMj07Cpz4Ix1KUZ2vZboXH7&#43;HPluwgTLEM01RKqso7/wf9Fq0Jzl3nkTLTuRLVxqoq&#43;PhltrkO2EO/XQpvb7HTLABW75bR7HMBjRoHtGxjzuSlbYaBT27rb7&#43;VVek07ang0imbUUdPzkqnlNSpah3T/m1rHebdhy/Re8EhF7rK7&#43;8Sn39naj9c9/TESmPbqbxCEDWjWv0zbhIVm56ZO8zgdZK&#43;SSgrC2jrHMLqKemCbl2mE0rz2apzpfn0aUtn9KYCCOWR2No4ZGmv1PX425n50IevSbTe&#43;tPU1ap6rk58Wtp2/5LlFXUMAIA4270/K&#43;nqFBeLdbzNWNcxHoe8uE58R4BYWRDkKWvuh7ZtZlB355SlZ5SXkQ3/vxGlMUurB99tO/WEY&#43;7HQFQKkvp9GfDydbYivp8cYjKJDvZGEHf5oWrk46ZC4388QClSecVilI6e3QXrVu5k&#43;Klc8qqVNEGhGroijbg2cXH621AYWGyaAO2HblUX1/qRgBg1ImmLPqTbhTKSZlxin5/qp3Yzvm9so1K5A0jEsqi1TSU6Z2Z5yRmu1Rtr7Jaztr69fRkN1Mydg6gN2NVT1cWX6HYLyeK7Z1H3yebtHdvz&#43;wujjT8lRGAlvSumslzs97VjQBA05Z8&#43;71Bmy7nkZLV8Wtr36HxgQZk2XEcfbNfVeeao36k5D6MACgrsujSulnkrqFDNhFD6Mu4bPF8adYZ&#43;nbuULLUx30dAfD3DyfH0W/TPslW17L8ub7vY9p4vPaeRwCg60P9XlpJR9KKSZl3mQ7OG0lRTjrkOuEL2n25SErNnkPJ9ONEf7LT06XId3&#43;ik8UV9aNPSUn7adU7q2if9PdfQZl3hJY8E00OUn1qqd1tzL63w24ZnbyZuhEATU1t8m/Xmzo99y2dzVKllRcm0an9ayjuYi17zzr/Uoscuo2mDw5cpkIxlart3S3oHWt7b65hdbMC7PSC6KVNt45EPij&#43;1hGA7BIDBEb0w&#43;RhXWBvpAppzL0GoWenYDiay5B36Qwu5eeAer6A/42NgpOp0B2vmnP/&#43;ovdYGZ8A3/EXUF1jSqyTD2wC/GaurAeuwCLRqg&#43;uNLQMUHb6FmY/bgX8gov4ODJu1&#43;YtEaY21VSBEsHW5gYGgAZsfh1RxoKg2MwwNcSZlo2iJk4BJaG&#43;vf01XhlcSGuXzyLNMdgdBr3Ah6PtBDPG9lHYODoSejVWQsJiZdwOVG1&#43;FfN1Us4lpmOHJ8hmPvODEzu4wRzPdUvW1sH4qmnRiLYxozFkypkcMCIl7/EM4H6qFScxZkzZ3D23AVcKjOGZ4d2qKquwdXUDCn1vWEY0QUj&#43;3dGG2sDyCx90TmmH6xtLZCUkYNyeUMvWsbxA7hQKYf&#43;yC&#43;weKyX&#43;KW9gHPU63j7hbasLM9j14Eb4jlBcjV1begbGkODbKBTkof0M&#43;dx/vx15BeqwTuyBwYPisTfvjYO1aKy4Ai2fvMkBg1qi5CQEIRERKHvk&#43;9g8W97EMfy88yZY9jz6w/4ccl6HLnHNdqIynE1/jJq3Nuho6sedNXLcfFUPPTb90cP53sP&#43;ZWZaax&#43;nUeCQyRGzXwOrzzWBs4mqueZmrph&#43;PBB6N7GHXWfRMlgiZ4TX8OTUd4wll1FQoJUZ3I14Ny&#43;PdQ0NJCQ9A8s8Ft&#43;FOt&#43;Por86t6YMNAflpI9aA6jsd/im5GREKyAYAMCmA0RbEBxacs2oLBCF26BPTF9XG&#43;4maryx8S5M7p2ioCPnQz5V&#43;KRkJ0BeeQkPD&#43;2F9o6qoY1rIMm4KVZvWFnnY49Ry&#43;jolI1f1Wx909sqa6GUdd3sGXleEQ6qp6ppqYBP7&#43;ueO6ZwbAVz9xETTaunYvFzjgtBLTpi66hzX0&#43;qwEdXV1oatlDT6mN6uREXDlzCZcuJUGp7oLek4eiO7MBjT9zCxszC51NdZCw8Gv8UaLq5avM3YZFCy9C17QzZo2uW6xApXd6BqYt6t2g3mHN613lRWzffAgJKX6I6RUKDymPWqIwNwmrX5mA59aeh7nbMHy0fSVGSPkkIq9A0aG9OGBiioD&#43;vRGkzFTVxSupkOvaIyzIH6lZOTh96ap0Q1MyigwR2W0IxvRuA2sD1XMt/UYgupMPrI0bfsd88HjM7uYLEx0NyOzDMOKxwSxvNRGfmCKlYLCyFGT5U98AvkMGoJ0sWyVLwg0UatiIsmTmFuDY&#43;UvSDX&#43;B8gP4ccVxlKnHYOoQb2g3sxqbTKYNQ2MDqMEJBvIi5J45i3PnriEtvRRO/p0xfGIv&#43;ElplbnZog04Zx0i2oC5M8LqbYCJiZNoA6IjfJrUFwGzviMwtXcoXEx0ILMNQb9RA6FvoIerKRmoleYuCyhit&#43;E39q/3iGHopZuvypcLCUhWmKFzu7YoKSvHodPnxbTKshLxOyShves17qkm7d2kmL4YEtL8x5mtpSW909DQaVHvtJ3dETFyFAZ5mUNmYA23yJ5o2z4Q&#43;cWlyClsNGL2N0KKShSnJCLJ2guh417Ds12sxPMG1m0Q028kHo8yFv&#43;&#43;X1zMsMIHH76BKKltEVasc4t6ETFh9&#43;72GYS0R8zAHoiwN4LM3AuR/frBzdMJqdm5KK1o/PWaFgwM9aCu7gzj2mqUXIzHuTNXcOVKCvRMwzHujXGIklI&#43;zFTXqjMd9cOcl55AkLUqH3VMnBHSaSS6&#43;Ar5qM7siA6z1ZbQIWOoCb7kmXjEx99AucIUEQP7IZq1vdbinQ8f914TWoFum3aIiIpAkGSIbqaKOYq1tTXwdXWEoX7ThsTO3hnqkiNSZ4gqykugoa6OUF8P8e86NLW0YWPnIDqiSZnZ0tnWk5&#43;fi/KyUthYWUBfTxfIY8ZUIYelnRV0tKXxPzcvtNXUwr2s0SB8cFOlqIApCy48nZqum2QoLCFpbIpcZoTqDFEOq0QlRQVwCwmAl60l7jS7gsWauHZgI5a8/yyGDAlVObDCER6JAXO3CQmgrKhEpZT&#43;XgjwdIOjjcpgNaGyEgql6oM78c&#43;KMvZzSoT6eDDlbzqk7eDoKpZlXTAiY06OkbkfeozuBxvZAXw7I5rJ3REdO47B1KffwYrfjyC5oEpM&#43;7fC5C&#43;&#43;eBjfLM6AuXlndOnShTVqgTDL/BOLZg9Fb5aXbUM6Y8gz32BXRq1q2lgrISpF6pnjOBQXh7i4H7BuUxbyFaVIOXoY&#43;&#43;OWYvWGcljaa&#43;EGu773VCoqpPvuhuLiAmRlpMDG3Qn&#43;Ad4wkc63hEqmWKz&#43;8n&#43;YyALviAipvgjvOW0ZyoSPtZkxvxdZ7hWCArmxu7AruxxGY3ohwsLkFmelMe0CfKT/U6GuoSnagMqqqhZtgLa7D9p264xQyfm/mWqm87U11XCzt4WpUdNft7F1gKamNq6nZYkBtcC1K&#43;ehZHWnXUxvOItn7owwZCxPS8T5fUdw1dcHgT1Dm3W0ZTCFT0R3RHWzQs7u&#43;XhiYBQrnz7o02cKXnp/Cf48m4aKqgYHTcQ&#43;CuP6OTEb&#43;Qd&#43;&#43;ZnVJZIjed16/M7slkv/cehkr3pvGWucRb0b0aNFvUsrulXvhGH9opPHsC8xC5U9IxHmZodbP1tuyvYlM/Dcr0chr3ZAx5few5CbAt3q6iokXo1ngcoNbPlfv/p6KNbFnqPxwpLDLGCqQY2iiv36reiFR6FDh2C4Sc5/S3QJC4auTjPWu7yivp4LZSnIUl2Sg9i5A5rK0nWwSpbaWtQqFM3K0lqEup69dSu2F1bD6rF&#43;6GCkV9&#43;Z0xhNLVf0mjQa3tYJWPu8IE8409URGDvxZXy9dg&#43;u5jZY9LLSYtEGWDrZiTbAVDp/JzqwNsbcpBnHk7UXctZu1E0WuXzpjPjv4XmDmuRLSGQ3jPkoVsg81FYq2JupZMlgdVxo79zsbcT76nBy9YGTy19bee5e9M7GwhzhAb7SX41gulzNgol7/yS19SiYfUlOTIAR83V8XZyksyqsbJ3g6Rsi/XV/MB09DeP&#43;QsdSc3i7OsHd0U76qxGVVVDUMN2Q/pTBBpExwxAZIcPxBVPRvUM4qy8xiImZgXcWrcPptAfZutw7agaGcBk6Bv1sm89HGfRh79kOXfoFAjdW461x3dl7dkO3bhPw9Kuf47f9F5Ff3twn8g8Hf2sAYGFiJB4tUVpSwBzjSpgYGUFL884T7Qpy08VNHizMWmve7iMmpjBXU2Px3t0jNHKlzEnT1tIS196/ExVlxVBUVsDIQB9a7J47Ic/YiNf7T8acZYegbhAmOrDi0Zk5d97MaWcNaG1qJu4&#43;NGoFmbnIY4FXnQEtKshibWStWEZCWd0JLRMHREz&#43;BN9&#43;PB0jRnRDl05tEOBSjst7l2Hum&#43;9h4dZrKJfS/m0wOfWs/THiteXYtHEPc9TjsGvXdqxa/glensYifTE/&#43;2LY2Mfx2KTe8GlmObiWuYI1s6dieLdu6N59JlZcz0Thvq8wZnA0&#43;/s5/FZeiXPMSerGrvd&#43;5tcW54zfDqGulJUWMgdHBwY3BdLNUZV/EF8/OQuvzt&#43;ILIUrwtqpgh7xaOMEdWECYnLGPclyz5Rewc/rdiC10gNPDesEW7Pbv4eV&#43;d0vOmnM9MnKrOVeNiEP70bvCvMyxRV37kqW6hJcPbsPG3anoG1YDwzt1PLCnybBw/Dy3Lfw2ovD0a9fV3SJdICV5hVsXPQynn7/V5zPKW&#43;yEoXQ6MbMGAdHbS1sXbgY5/LPYdnSndDWccToGYOa9IoKetd12vwW9W5ZbNKteleejNg/YxGfaYqhvTvD16kVdvhqJlx9fGGrdoXJ9BFib2r4a5kjV1SQDQ0dfbgES3Xw5iPIBy6sOjTnMlibmcDspmDtrriRVl/PlczhFWRRZ4GeU5tm5GBHV&#43;Ywe&#43;qzuiLdc0&#43;UXMSKn7cjF4F4YXQHmBg0362kpqUHz9Ff4McFz2DMGFZGnVnQ5UvIT9iAD954Be&#43;sjkfdFihVVZVi/dXR1m6VDbgjrL3IYE59XYgptL0C9kHN50uXdmHwZ8UgbIAoyFLX3hka/IWyaYF70ruWKClDaWHJbTduvF/U1FSjuDAHmszXMTG&#43;2y&#43;97h5PFgw&#43;MLLzkF8hFwPAOqx7vYIFn87BtMej0bMns18RxtAqPYKFcyZg0keH/xWbnWlqaMDF9vb99/ouERj3wvuY/9ZEFuAwPe3oBVezTBz49SO8/M432H4hp0m&#43;PEz8rQHAnTC3soeungESU9NQ1mT4iAWU8goQM8iGerqCfybi4OIrNhjx15ruuEvMUCkq5VBXV4Nec708d0BLUwsarKArFVWoEZa/09KGvpo6e6aC/Z7UB5KUiEtMge&#43;l50dbR4&#43;9qwOzNWVITm/6AZRgFIQeCC1NDWhLQZCltSOMTMyRmpyKvKKS&#43;qi6JRJ/WY5tVQpY9n4K361fLzqwwrFn1zasmNVBSvVgsHHwYHmpKZZR4yFkATkrU6Es9XV1pDMqtPSt0CHmfXz//W7E7dyJ37/7DDOjg4DLN3B291EkS&#43;n&#43;LmRqLDDzHowZM9rCShrm09LSh1/bQZj1wQopPzfjx2&#43;ex7Bw97tc79wQjsFhiGSNZIibKXQ1LeAR2h5R7O82TrrM2baGX8cosRHtHOKAe9lKycjYHNZ2LsjPyUNqWuYde7My92zH7uwMyNqPxLvfrcT2Xbvq68y2eUNhoPNgv6IWekTzD2zEmmP5UO81Ev39LGGidfsg69zlplNChFEnwQaosSD9XmyAgKmFHfQMjJGalS1OaWhMpUJYdlPJ6q42&#43;w2VbG5eweIo17lT51o1WiL0/ityEnF8&#43;zbsU/dHxIBeCL9DMGnmHo0Zz6/ERiEw3bwZP733JCIdzJG5aTeO5xXd&#43;rth0ZjqaY6a&#43;M1YtXQVtl1mdsVhLKKbGfbXNnJsUe/OHDzdRO&#43;E5QSLTsdi276LKGrbDz0i/WCve3vZBayYXs39ahFeDHNjMi3Cax/9ifRGH/RqCqMTHgHQs3JFzLsb6uth42P3hm8wd0L4HUe2/irqzOYLsmgZW6H3m781L8vm5Zg/reM973kgjnTtWYtVJ8uhP2g8BnkaQf82G4gJ0zb8e76O775jZRQbi&#43;0rv8M7E6Kgk56D85v2oG7PWQMDE9EGFOYXijbgfo&#43;bevqGiv92ntPQvjQ&#43;9mz/FV/N6gpLlkaQxc7BXWzv0pguNUZeUYqKir8UPt213j0saGvrwcnVD&#43;UVFUhMadq9InQ8lJc&#43;mKlIAjJmJ7VZ0K1kbbSc&#43;Tl1CJ13VYr7564K0yfnffQ7du5k9ov5JktfUk3Purh4DY6qkvwnMLRtiyGTv8IvvzA93boV6794HUNDXFB64DROJSSxYP/h5B8NAHSYk2uso4v0M3tx5GJK/Xb/5bkXsW73KZTJddE51Euc9iOgb20HI&#43;Ywx&#43;/bhEM3VEZEWGs47cYZbD5wBaaG1gjxbTq0JsylFYbutbUVKCtiUWpB2S3G0dTWEZbGpkhLzUBxKXuufRCi3MxQkXAa13JKoaitQPKhI7gor2zWudLTNwDVKlEgFHSjFXHqUGeNnJGJGSgvA2eO7cflHNXQbVV5Ls6cP40z1wrhau8IV9awCxg7usDR3BIlJ/Zh859HcC6tDJXSCkFyeQEuXryBfLmivnemuCBHDJZ8Q/vBxUQ1xUhZW4Kiq2fwZ1zdOhG3oq6uAR2W/1Ul5chLykZxo/WA7xU9C2uYsvK6cmAzDlwtZAGV6pllWWew&#43;s&#43;zrCzN0SFYNemBqBYVZWk4d/QiUgvk4vr3pKsJvQAHeLR1g4OYqjlYeepoQlOrAoXZOSgU1rmXrjxsyGReGPXFcvwatw2fTmoDW69heOeH37ArbiveG2QLffdJ&#43;HrrDrER3bVwxG3euWX0zK3g6OIOunYBe7Ztx8GrBSiTVsJRKEohrDWdUVBSX3fLy4pQU10FN9&#43;OcLP2hJa6JnNMWAOUfAG7/jyJ6prmQk5hi3V95iATu7cAWan596/xLYrH6vXbkVzjhxlDO8PO/M49mJf2/oqDN3LEXmrBBuSlnsFeZgMM9ayasQGtQ9vIBCa6eshPOIGjF64jTxq6lRdcw6a4U6yeaaJdgEf9tEC7kHA4s7p&#43;af0S/LDvGnLqVkFhgUJhYSYuXExumkdVRUg6H4s1sekIDO&#43;HUZ1b7v0XpmmlXb&#43;ChCsZyJWrpiiQhQGsuvrD18IQLa27I5OFYfxrfWCKi/h6zkJc1bZC0IyBaLxVIVG1qHfnT1xuvd6VJWH79p04lmKAUf26IcxTcPXuTI9X38bwqCg89&#43;0c9Awww4WFL&#43;OjbTfqRxfUtXTgENgWBoW52P7rSpy6VlC/D0ZNTSXys68j4fJlpBT/ddt0J2TMHgqymJeVYNvapTh&#43;Oa&#43;&#43;/GpZHRNluRSPG0W3yqLF2hhNLS3IswuQm1HU7PryIgVn8P3qbcjWDMVzI6Ng2kLvv0BNdSbOHjiHpNxyMb9IQw1aXjZw6xYAV1WSenRMzUQboJF8RbQBexPy6m1AVVWZaAPScovu2DnQEvahkeJ0m62rF&#43;HgeZXeCQhTcYryk3HlwklcK1D9niCLg4c3dFh7d/r44Sbt3b5D&#43;3H0XPPfc7SWlvROkKVZvXtACH6AQMH5q/UyNUZTTx8OfkEwLMrF2SO7EZ&#43;lqunCnjmnTx/GzsNnxb8fBIJP5OIegIqSMlzYfwIFLCgX9hxJupKA46euS6nuHaJ8XD55AVeS81HMfCPBVyF7EzgNDEeAKsl/AiI58rNuIP78DXGVSCF0IiMdGLdzh7e7DVRfvzSHDnT11JkPVoKclGyUVDdMo36Q/KMLJpr6d0Xvtjtw&#43;Kdf8MlCc2jkdoStkSZyzq/CnKXHUGjcH6OiHOu3WLftMgHDPXdh&#43;bZ5eMrGHG9F24obwpyMXYwPtuYjaMBU9A5qOitVBj2YWdrD3lmGnad3Ye33digItxOXWjRzCYCvlzssbFzga2uBLfGJSMsvgsI7DEMmRuPkp4fx0/oNzCEwRea2eGjIa5qNmOyCQmFfFYczK77GNx7FCLSSQUvPGO6hXeFtzv7fxAaBkb3R6dePsX/Np3hXrxbDg01RnnMOG3/9GVsTzTB2SCiCnKVhQQd/9IvqgDMnV2PF/M&#43;Qn5KMvmG2MNERvle4wgyFGma8PhGdXKxEedxCOsFcPQl7V3yOr42HIdROJm4ylPr7Zqw/2HRkpTE6Jqawd/OEXvJu7Pl&#43;KZy1urMAQgYjWzf4&#43;QfC5g7zapvDKmIIhrTZhY/2fIrn5ltj7iA36GqqIePkYrz4UyIM/B/H0HZ1Q2oK5KXEYuGs36E3NBqBXuYwRyUKs05iw&#43;9xuGpih0AH61uWxWQSwsHZEVa2ldizcwN&#43;sapFqo8FUynAxq8jAlwsYHCHHuQHjvwac2RKoBUZjkBjQ2iVX8S5C5WwHx6Ntlp3nv52W8wdERDZHdGrj2Hjz1/h7dJijOjpBTtDGUpK0liDW4bIgQMxqIu/uKOurUcArAxNsHfzz1jK8q6rrzErozzk/PkHtv&#43;ZiapqYnncFBmraerqtvAPsUbF8TPYuOg7GOX5iT1&#43;OkYW8Aju2OxOmXeCWHln7duIzUezoN97CnoFOsC4Fbsz2l9ehZkfaeDJ6GBYMhtw7cASfMNsgHmXMbfYgNZi4tMB3cKCcHj5Dny92BaU0w1&#43;NjrIv7IJc5ceRLp2V7wU6Q6DuuUa20Tj2R4b8fKmFXhmGpA1eyCCbZjuMUfkRvJ5nLrhiHkLpoqOkzj3P/saTm7ZhOPaAZgypB&#43;CW/g2SkUqDq5ZiT8vyeDUNQjuLCjSRSESj6/H5pRM1Lj2gJWuVrMG3KbTKAxy/h4rkwm61t0wa2SwdKUOuah3Xz2/A3oDejSrd&#43;2ZPazTO2Huf&#43;H5/dixPwGFfkPQrb0vHKVFCVqLLHgKVs47gz6TvsL373&#43;CEM&#43;5mBxoxTxnXRiHRmOKyzp8&#43;9uHeFmmwJgYb/HbgsrKIiTG70diqSU6TZmHx4Luvn7dFSwAEGSZ4bseX2yah&#43;fVajBxpKqOC4H09QtxSMzTQdvHv8LM0KayGNjaw8HGHjW/H8HmlT9As6gNrFiUZuEegkBPJxjryMS6nhG7FutPFMEiZg76&#43;FpC7za9/4qKI/h65lJojIhBMMsrK1aHKoovIm7DepzV10WUq33DqIixjWgDBq07iV&#43;YDXgzPw8T&#43;vmLNqC0NBNHzhYjuEdvjOrb9t521Q4diJfar8RbW9/HTGUNnpoawuRRBUZJVw7g0oUU&#43;D77G16IYO/DZHFl9iBa9w9sWv053pVV1Ld3Gzbtx7EMLVZJVY&#43;9J1rQO1GWlItN9O5uoZJ0XLh0GdczVZOCrp/NQAGLJmriDyJ2azEusfyUGXsgItwTVix4a&#43;wP2DA/wBm/4vKKL7EorEqUSUNbD27hveBnwfJF1wgWbbsjxmQ1flz/Cd401sCEcDNU5F/Gnu0bsDtJF6xpeyCoa2nDzicA5gXncGLFYix1ymPtfwHiYzchttHSuPfOJax9bzGSHQIQ0MkLjsxmqiEbZ7d/h13sqkWAxwP7MJYKruHgmWvIK1EFohcThE30gLRTu7DF0BqCOVczC0D3zh63/e6sefKRcGg9vl9xHZa9I&#43;HjaMTsZikyL8di7YkLyLXtCEtTQ9E3aYyMWThPPycWBBzD3p9&#43;wE/GGfAw1BanmDuF90MbW03VVNy/G3EtoFZwTxuBRT9Nyw7ffkGrwlPr6JXJncnDVY80NJiNFNobMzNy7dyPxn0VR&#43;WKppujJG56iwZ29SALC2lDKDU10nZyoZART9L8bVelVE1R5l&#43;lzZ/MpAhvK9LTk36DHQ0bgRXRue9nUwfX9jThqx10ubiKnSugY1uX0eynptGkSa/TokVLaN706TR98b5bZKosPUKLB3WjIPOGzXpuXl5Lnp1A2xdOp87hdmRoKMmgq0smvm2o53Nf0KbTTZfhVBZdoE3zZ9PAUA9y1tciZjLFe0xMHKjz1KV0NL24fnMcZfZumj&#43;uP/nbatb/voatL3UaPonmPz&#43;GoG1KLkOX0s2lplQWUdKRn&#43;iNLuHkamhYf29AzLO0&#43;YpqWar6jcBYXh1MbViqSnliEXUJtCUN/5n008mUJhvS5OxdSOP6B5CtjTrJhHZPeK6lJfn1HUPP/HReSiX8voLyErfS/L4dKdDBhFhjpkqrpUVGXgHUd/ZHtPl8w9JijVGmHaVlc8ZRgKsx6ehI97HjYdwITECZ8D2NDQ2mwR/voaRCVr/OfUGdbd1o9rYCqpCWuf0rKCvS6cjP82hy5zbkaaZHelJ&#43;GBhYUkj/V2nd8bT6zeCUhadp5SuTKcrDlLTrdM7Uidr0G01fvv446epokWa79&#43;mKlL4OZY2CsmK/oH4hrmTaaDOTv7IRmDL/JH0yqT05evahj7clUL60JGlL1G8E9u5yGtiF2QFRBjXS0HKgkL5P0txNCVLKBuo3Ams3hL6Qlt5riaLzm2n&#43;rH7k425AWuKGUewwMSHnjr1p1GfbKfnmjeyY7r0zpCeFe1pKsoDVeTWyZ7Zk3Adx9cv5KStz6cKW96iHhz11nLKITktLNLaEUsnKc9nbNL6dN7ka6RBrQFSyGBmRQ/vu9PTSvZTF7FRL1OWT1&#43;Mb6OY3ViorRL17r3f7FvVu56WGGqwsvkTr3h1NPp4d6Mmv/qS0ijvX1&#43;Y2AhM2wtn&#43;UnuyUNcm475zmA2TzitKKXP7Z/QiswM&#43;TB5RFnYIGzs5e4TShFcX0P5GS4cK1G8ENuS12y67Wb8R2FcnKVdaSllAuWM2GQt2tcNnTeq5IEtB3EKaM6Az&#43;TuZ1suiqakryjJy9gcUy9qMm1Eqs&#43;jUL/NpZmgAWTO7Xndfl&#43;eW02lp&#43;UBl7hF6Z1gg2XgOpMX7U&#43;649J/YrsR0oxBXczKTngcNDbG9i5r8Cv14rOnysYINOLPhM9EGeFsa1NsAPT0z0Qas3H&#43;j3ga0tLylct&#43;75GxlQJptX6cTJfImG7Apz3xPbzJ52rpb1L&#43;fmpoG2TsFUd&#43;Jz9O2aw3PqWvvOra1kdo71tZZt6HhgwZSt1DPv74RWDN6J8pyk97VbwTWPoa&#43;PtFoucvUQ/TZE5Hispuzlx5q0FPJjte9X3OHRpsXWPuYLS4P3Ril8gItF2RibV1dWgMrZ5qzp&#43;F3q4qzaN&#43;SZ6h7e0cyEjeGZDpn4U/R0YNoSNeg&#43;7sR2AfHpTO3omp7f6cPegeQk2jLNUnXxIP6jxpNT4/t1eIyoKHj3hR9pjqEOjGphxdpeE&#43;mxXuv1i9VrFRepo3PT6S&#43;QU5kq6EmLDepyhMLC/LqMaTFZcfvltYsA6o8/Knoq9SVSXPHzXagfiMwM/vb&#43;rtKZT5diV1KsyWdYwGE6pl6emTZJoLGzfuJzqY1tw0ru/faNnp&#43;aBS52Ouwutsgy4PcCEx9LoP96B1RKsqQcmg1Vp&#43;ugl&#43;v8Rgc1PKMTGG78HIFa6tcQtEhNADOZi1/UKdj64e2AbawsDGFla03AgKCEdy7N0Y9&#43;QpeG9AG&#43;lpNP7s19uiAToFG0DYzh7NzGwSHhaH94OGYOu0ZTIlofgKFTNcMDvau8HIyhrGDE7y92X3BwYiI6o52Ae6w0tOBlbkBUq5sxd5zFbD3CISXvTVcvNsiut9ADB7cHeHhbRE1YAAGhDlDU73pOIC6hi2COwXBVtMYui4u4rPbhrVDx86qEQABYXMRB&#43;8gBHkZQ9/cTtx8KbhjR/Qc8xhmjx&#43;OLh5NZ5XKdKzgFeAPXw9bOJnbwtHLD37suT16DMG06aMQ4mgCLXXVs2X6rujQqQ1MdGpgaO8v/n67QY/h6VdeQR&#43;rQuTCCqHtO6NHO&#43;cmKwrJZDowtnCCf6AXzA3MYeHhqbq3Q2dEhqpGAKrKC1EpM4RTm26IYHllVjfvt6oU2eUacPRuhx5R/rA30a3/QFrfuR06sfqhY24KB0dh8w1Wpn37YvIz/8PLPRoGr2UydegaOCAw0g8OLK2jjRvc2O8Ht2&#43;PbqMnYOrY0ejl2fxHmzIje7jbO8DO3gAWjh7w9VWVaYdu0Qhz/wdGAHLjsSN2H45lm6Jn/x4I87RqumJUcRaullkjil0LdGD1tygN8RUu6DGwEzxNNKDeig&#43;mb4dM0xD2br4ICXJjeWkJRxdveLP8ED5enjBhFLqGusFI6lmX6dggqG0AbC20YWjlCj&#43;mc217Dce0V9/ASB8gR6GPgNDO6NvFu0mPiEyNlZdNANo7G0LL3gqurqo8D23XHh06dLrrEQCCHBmxP2D&#43;ykOojHoML46Mgpvp7efvX93yHn4&#43;VYuwl37DhzH60K42g3NwGNq1j8ETz8zC9J63Tv9R1lSivEIBHfsgdIoIgzt775bQsWI2yN&#43;Z2SIjWNl5wc&#43;PvWOPHhg&#43;4yW8OigMNkZN7xV0r3OXYLjYmDAdcGKyBCMkJBQxMRMwZVJfOOkLEXAtKtLPYdeSBViWZI9hs5/H&#43;KDbf0ArYzpn7&#43;4JL287OAr67&#43;ELX0E3unfH0Ceew8w&#43;bWFj2LxdJcrA7s8&#43;wx/JFhj65jyM9mnaryWTaYp6FxDuDScr82b1rpu7Su&#43;E3v/cY5vw/cotuOQ4AI9PGIhIxztv/FVZmAa5gSfCuvZHqJO&#43;2JslY7XJPdAZlTkEe7NaGLfpJ46WytS1mM0IRntmB6yYHTBi8gj1qj2zWYOHT8G4MQMR5ti0D01oj0qr1WDmEY6OwT4s75vPC0VxNiq07REc1Q9hrsb1NhPyAqTKjVg974q&#43;jXr&#43;BFl0HJkd6RAAGwtT6DP9EG1iu44YMuJxjB07BJEut36pI5MZwMbFA95uLjA0sYKDj4/qHTr3RDtfJxjpyJG67Tu898MpaPZ7CnOGhsOuhU3u6hDblaggOFqYwMHCBS5CGYWHo33MMEydOh1DA25qM5gNsHb2RkigK5wsreHg5CnagKioPpg4cQy6h3vCWLKLVSW5kGtZwSfiJnupKEJ6hS68gjshuosPTDTU60cDZTbB6NQpAI7WptAycxbfL4y1c4OGsDKaPAHdPBtal7r2ztfNAEaWwmaDrK0b8Bimj&#43;sFHwd96Nj4oXPHEHjbs3ZMuuduaE7vRFkGjavXOwFltQLyijLouUQisn0EXOtG3WoUKGE2QcPcC1GdwuHvbKaSg/kuhZWAobWqDjZ3hLTrjF6dfFn72HQEQCazQrAgk6YJ1J2cxLRtQ8PQsZs0AsBQ1zaArVcIQnyMoGduA3f3CHSLnojHJw5Be5Z/ZOKBTh3C0YaVyb3ki0BNaS7ymSyhnaPRxat5O6Nqe23hJ8yG0DWElSvTo54j8RjzLdrbsGwwcGE60A5tva3F3usaeQkqatRh598F7Zm&#43;WdaNAFaXIb9SHeYuwejeKRAuFgaiHyCTmcM7zB/uztawM7aDc0AgAoX8i47GhGffxLMd/8oQUCOUCpSVVkHd3APtpPp0i1YpipEt14aDm0onmztCIro3sQPMiELBdKRC3x0duvSoXxL6ZmQyXZgJM0gknXNkOuclPDMqCn0nTse0wT0RYNPCvWYeCHMyh4mjKWwcfREYqJKlU&#43;&#43;BCLHTeiAjADIhCpD&#43;/7ZUl2TiwCeDEP1VOsJHvYDHo1xg5R6KLu1dWpyP&#43;m/jRuzH&#43;PLz7Uhz6o9Ro/uhU6grrPRVwzIcTnOUpKrW0E88fxQ//7oFuwtD8cHX72N6P/8HNZr7r4VQjPjNq/DLjjS4DZuEwZ28YXaHwG3rNG30X1KFaVtr8W3fpoH4w4rwAW1h8gn88d2PuKAdiTHPjr/D9J97h1CKjKMfYVz797Hfazp27V&#43;M7szJvleEb0Ou79uITRtPQqvjSAyKbgdnybnitB5CEc6sXYrVewoRNOEJDAp3rg/IORwO55/grgOA7u&#43;eEP&#43;WGbHIaMIH&#43;OUeP1x8GCGUIO3ALvyw5SSSimTwcDaFjp5qjoSaVTsMjQmFLQ8IOI24uuVdzJ37ttgrLaDuEsMDgL&#43;Rf2MA8CAQbNfF39dh9/UkXPztM3yzrwLBH53H6Zf/S5/ccTgcDud&#43;0eoAoLayBIm7l&#43;LrnaqdE2U6FnAJG4BJw4P/9uXZHjTFxak4snUPrp&#43;9iKTKSnHVIHXH3njyie5wNdLhAQCnntwLO7B9&#43;w6cTFN9w69mFogBw/ujg5/NLR/&#43;cP46PABoHkISlg/tgqc3p6Cy1hoBMdF4fd5yjPLjecR5OBE2sLyy7yCOnL6OQunc7ZDJvNF3Rk&#43;4a2v&#43;p9tgohLcOHoIR44kIEc6dztkMld0HdsdPpaG97RR6T9JdeVV7P7mD7Rub21TOPmHoUsv/ztuQMhpHa0OADgcDuef5uKaF/Dd4VpETvuMO7eNIBTg6PKvsP5CIaqVTix/JrD8ad1SnRzOPwHRRax57jW8&#43;eUmtGZhUDW10VidvwxDTPTubSWjfwlESdjy9ut4&#43;&#43;2fcEo6dzvU1Prjy5OLMTHY8V836lxeuA4zzUbiB&#43;nv2yGTeaLnY3PwxfLJ8JPOcf4aPADgcDgcDofzQCHKRfyOWOw5ktCqXWFlsgAMfyUGPjr/9RGAIlzZuxtxcefQdNvQ5hH2muk7vT/a2Bj/60YAquTx&#43;OOjdWjNDgjCh8VuwsfpMSHi0rycvw4PADgcDofD4XA4nEcIPobO4XA4HA6Hw&#43;E8QvAAgMPhcDgcDofDeYTgAQCHw&#43;FwOBwOh/MI0apvAEhZi7LEw1j143IcTVYC2gawadcfw4ZEI/wud//kcDgcDofD4XA4/xx3DABIWY3K5O14&#43;&#43;mPsPbIQdwoYCc1tGHkEojuA4di&#43;lOvItqdBwEcDofD4XA4HM6/gdsGAAQlauRJ&#43;P3VUXji2yuQ9ZyBV4d7Qq/0KnZv&#43;hlbL5ki5sWlWPRcu//cZmAcDofD4XA4HM5/kdt/A6CsgSIlDt//cBZKi/54df6LePKxyXh82iw899RUdNW&#43;gWObF2PPdb6SKIfD4XA4HA6H82/gtgEA1VQj/cDv2F&#43;mAZMegzDRzxJ6UIeGtjX8grqjTztzFGZcxvlEYV4Qh8PhcDgcDofDedi5bQCgrK3BtVMHUKyhDo&#43;wgPrd12QsCDAwtICntwdKKyqQmNaa/eo4HA6Hw&#43;FwOBzOP83tRwCIUF5WBHU1dfh5uElnVaira0BHVw81tUqUySulsxwOh8PhcDgcDudhplX7AMhkgJ6mDEWnt&#43;PN6EEY/8EPuCRd43A4HA6Hw&#43;FwOP8eWhUAiJAS1UVZiN9/EEcTklAineZwOBwOh8PhcDj/HloVACiVSiRn58M0bBA&#43;ORyHze9MQ6B0jcPhcDgcDofD4fx7uG0AoKamDgcXX3Ge//nrKdAwNINrUCB8nW2gXilHTnYG9HW14WRT93kwh8PhcDgcDofDeZi5fQCgqQmfXjEIqqpG/vpYHJbOE6qQn3cFx/ZdgIGeHlwd7KQrHA6Hw&#43;FwOBwO52Hm9lOA1DSh69cHg4JqkZ3yA56dfwjpzPkvyz&#43;ODasXYGmSDZwiJqJvGw3pBg6Hw&#43;FwOBwOh/MwIyNhrc8WIOG/mjJk7n4ffaI/xmUjS9iY6EBNWYmSogJoObTD019tx5weBuAhAIfD4XA4HA6H8/Bz2wBAQLxcXY7kuB/wwkvP4LdzSkDPFO5DnsNbr8/GCA8D6GjIpNQcDofD4XA4HA7nYeaOAYCAkIRqqyGXV6C6Vjgjg5qWNnR0tKGlxp1/DofD4XA4HA7n30KrAgAOh8PhcDgcDofz36BV&#43;wBwOBwOh8PhcDic/wY8AOBwOBwOh8PhcB4heADA4XA4HA6Hw&#43;E8QvAAgMPhcDgcDofDeYTgAQCHw&#43;FwOBwOh/MIwQMADofD4XA4HA7nEYIHABwOh8PhcDgcziMEDwA4HA6Hw&#43;FwOJxHCB4AcDgcDofD4XA4jxA8AOBwOBwOh8PhcB4heADA4XA4HA6Hw&#43;E8MgD/B0dlZKslc3myAAAAAElFTkSuQmCC" />   
+    </p>
+<p>该值默认是0，表示父进程优先获得调度。如果该值被改为1，子进程会优先获得调度。POSIX标准和linux都没有保证会优先调度父进程，因此在应用中，我们不能对父子进程的执行顺序做任何假设。如果确实需要父子进程的某一特定执行顺序，那么还是得需要进程间的同步手段。</p>
+
+        </div>
+
+        
+<div class="post-archive">
+    <ul class="post-copyright">
+        <li><strong>原文作者：</strong><a rel="author" href="http://fhstack.github.io/">Fh</a></li>
+        <li style="word-break:break-all"><strong>原文链接：</strong><a href="http://fhstack.github.io/post/2019-03-16-forkhoufashengleshenme/">http://fhstack.github.io/post/2019-03-16-forkhoufashengleshenme/</a></li>
+        <li><strong>版权声明：</strong>本作品采用<a rel="license" href="https://creativecommons.org/licenses/by-nc-nd/4.0/">知识共享署名-非商业性使用-禁止演绎 4.0 国际许可协议</a>进行许可，非商业转载请注明出处（作者，原文链接），商业转载请联系作者获得授权。</li>
+    </ul>
+</div>
+<br/>
+
+
+
+        
+
+<div class="post-archive">
+    <h2>See Also</h2>
+    <ul class="listing">
+        
+        <li><a href="/post/2019-03-13-zhidaozhegekenghuanshicaile/">知道这个坑，还是踩了</a></li>
+        
+        <li><a href="/post/2019-03-05-golang1-4yishangbanbenanzhuangwenti/">golang1.4以上版本安装问题</a></li>
+        
+        <li><a href="/post/2019-03-03-mainhanshushicchengxuzhixingderukouma/">main函数是C程序执行的入口吗？</a></li>
+        
+        <li><a href="/post/2019-02-20-ganxiekaiyuan/">感谢开源</a></li>
+        
+    </ul>
+</div>
+
+
+        <div class="post-meta meta-tags">
+            
+            没有标签
+            
+        </div>
+    </article>
+    
+    
+
+    
+    
+    <div class="post bg-white">
+      <script src="https://utteranc.es/client.js"
+            repo= "your github repo"
+            issue-term="pathname"
+            theme="github-light"
+            crossorigin="anonymous"
+            async>
+      </script>
+    </div>
+    
+</div>
+
+                    <footer id="footer">
+    <div>
+        &copy; 2021 <a href="http://fhstack.github.io/">Fh&#39;s Blog By Fh</a>
+        
+    </div>
+    <br />
+    <div>
+        <div class="github-badge">
+            <a href="https://gohugo.io/" target="_black" rel="nofollow"><span class="badge-subject">Powered by</span><span class="badge-value bg-blue">Hugo</span></a>
+        </div>
+        <div class="github-badge">
+            <a href="https://www.flysnow.org/" target="_black"><span class="badge-subject">Design by</span><span class="badge-value bg-brightgreen">飞雪无情</span></a>
+        </div>
+        <div class="github-badge">
+            <a href="https://github.com/flysnow-org/maupassant-hugo" target="_black"><span class="badge-subject">Theme</span><span class="badge-value bg-yellowgreen">Maupassant</span></a>
+        </div>
+    </div>
+</footer>
+
+
+    
+    <script type="text/javascript">
+        window.MathJax = {
+            tex2jax: {
+                inlineMath: [['$', '$']],
+                processEscapes: true
+                }
+            };
+    </script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML' async></script>
+
+<a id="rocket" href="#top"></a>
+<script type="text/javascript" src='/js/totop.js?v=0.0.0' async=""></script>
+
+
+
+    <script type="text/javascript" src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script>
+
+
+
+
+    <script src='/js/douban.js'></script>
+
+                </div>
+
+                <div id="secondary">
+    <section class="widget">
+        <form id="search" action='http://fhstack.github.io/search/' method="get" accept-charset="utf-8" target="_blank" _lpchecked="1">
+      
+      <input type="text" name="q" maxlength="20" placeholder="Search">
+      <input type="hidden" name="sitesearch" value="http://fhstack.github.io/">
+      <button type="submit" class="submit icon-search"></button>
+</form>
+    </section>
+    
+    <section class="widget">
+        <h3 class="widget-title">最近文章</h3>
+<ul class="widget-list">
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2020-06-27-sync-mapyuanmayuedubiji/" title="sync.Map源码阅读笔记">sync.Map源码阅读笔记</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2020-06-02-quic/" title="QUIC">QUIC</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-06-17-redisyuanmapouxidicter/" title="Redis源码剖析——dict（二）">Redis源码剖析——dict（二）</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-06-14-redisyuanmapouxidict/" title="Redis源码剖析——dict（一）">Redis源码剖析——dict（一）</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-06-11-redisyuanmapouxiintset/" title="Redis源码剖析——intset">Redis源码剖析——intset</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-05-12-redisyuanmapouxihyperloglog/" title="Redis源码剖析——HyperLogLog">Redis源码剖析——HyperLogLog</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-05-08-redisyuanmapouxitiaobiaosan/" title="Redis源码剖析——跳表（三）">Redis源码剖析——跳表（三）</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-05-05-redisyuanmapouxitiaobiaoer/" title="Redis源码剖析——跳表（二）">Redis源码剖析——跳表（二）</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-05-03-redisyuanmapouxitiaobiaoyi/" title="Redis源码剖析——跳表（一）">Redis源码剖析——跳表（一）</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-04-20-nihuanzaizheyangxiekuaipai/" title="你还在这样写快排？">你还在这样写快排？</a>
+    </li>
+    
+</ul>
+    </section>
+
+    
+
+    <section class="widget">
+        <h3 class="widget-title"><a href='/categories/'>分类</a></h3>
+<ul class="widget-list">
+    
+    <li><a href="http://fhstack.github.io/categories/C/C&#43;&#43;/">C/C&#43;&#43; (1)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/Golang/">Golang (6)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/linux/">linux (3)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/%E6%9D%82%E8%AE%B0/">杂记 (1)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB/">源码阅读 (17)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/">算法与数据结构 (2)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/%E7%BD%91%E7%BB%9C/">网络 (1)</a></li>
+    
+</ul>
+    </section>
+
+    <section class="widget">
+        <h3 class="widget-title"><a href='/tags/'>标签</a></h3>
+<div class="tagcloud">
+    
+</div>
+    </section>
+
+    
+<section class="widget">
+    <h3 class="widget-title">友情链接</h3>
+    <ul class="widget-list">
+        
+        <li>
+            <a target="_blank" href="https://www.github.com/fhstack" title="我的Github">我的Githhub</a>
+        </li>
+        
+    </ul>
+</section>
+
+
+    <section class="widget">
+        <h3 class="widget-title">其它</h3>
+        <ul class="widget-list">
+            <li><a href="http://fhstack.github.io/index.xml">文章 RSS</a></li>
+        </ul>
+    </section>
+</div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

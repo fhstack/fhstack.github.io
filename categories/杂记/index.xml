@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>杂记 on Fh&#39;s Blog</title>
+    <link>http://fhstack.github.io/categories/%E6%9D%82%E8%AE%B0/</link>
+    <description>Recent content in 杂记 on Fh&#39;s Blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-CN</language>
+    <lastBuildDate>Tue, 19 Feb 2019 16:00:10 +0000</lastBuildDate><atom:link href="http://fhstack.github.io/categories/%E6%9D%82%E8%AE%B0/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>感谢开源</title>
+      <link>http://fhstack.github.io/post/2019-02-20-ganxiekaiyuan/</link>
+      <pubDate>Tue, 19 Feb 2019 16:00:10 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/post/2019-02-20-ganxiekaiyuan/</guid>
+      <description>之前在CSDN上写博客，但实在觉得那上面没有一个纯粹的技术环境，整个页面有三分之一是垃圾广告（当然不能否定CSDN为我国it早期技术文档（?）），实在是不想在那儿写了。 一直准备把自己的博客弄好，无奈一直没有抽出一个这样的时间来，正好今天下午需求做完了，就把这件事干了，前前后后折腾</description>
+    </item>
+    
+  </channel>
+</rss>

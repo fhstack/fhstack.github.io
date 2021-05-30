@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Golang on Fh&#39;s Blog</title>
+    <link>http://fhstack.github.io/categories/Golang/</link>
+    <description>Recent content in Golang on Fh&#39;s Blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-CN</language>
+    <lastBuildDate>Fri, 26 Jun 2020 16:38:05 +0000</lastBuildDate><atom:link href="http://fhstack.github.io/categories/Golang/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>sync.Map源码阅读笔记</title>
+      <link>http://fhstack.github.io/post/2020-06-27-sync-mapyuanmayuedubiji/</link>
+      <pubDate>Fri, 26 Jun 2020 16:38:05 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/post/2020-06-27-sync-mapyuanmayuedubiji/</guid>
+      <description>写在前面的碎碎念 Go的原生map不是并发安全的，多个协程并发读写map被竞态检测到时会直接panic掉整个进程，recover都不能cover住&amp;hellip;因此在写代码时，只要关于并发读写map都要谨记并发安全，印象中之前组里有出过这样的bug，凌晨左右发现服务莫名其妙挂掉。</description>
+    </item>
+    
+    <item>
+      <title>你还在这样写快排？</title>
+      <link>http://fhstack.github.io/post/2019-04-20-nihuanzaizheyangxiekuaipai/</link>
+      <pubDate>Sat, 20 Apr 2019 06:35:40 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/post/2019-04-20-nihuanzaizheyangxiekuaipai/</guid>
+      <description>排序永远是数据结构里永恒的话题，快排、归并排序这样基于分治思想排序的提出，极大的优化了插入排序、冒泡排序这样的O(N^2)排序算法。对于这样基于分治思想的排序，都可以写成多线程算法，但在C/C++下，很少有人把快排写成多线程，因为就pthread线程库来说其实现是与内核线程1:1</description>
+    </item>
+    
+    <item>
+      <title>Golang——数组与切片的区别</title>
+      <link>http://fhstack.github.io/post/2019-04-16-golangarrayyuslicequbie/</link>
+      <pubDate>Tue, 16 Apr 2019 09:27:31 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/post/2019-04-16-golangarrayyuslicequbie/</guid>
+      <description>在Golang中顺序容器有两种，一种是普通的数组，一种是切片。 数组(array) 数组创建方式分为两种，一种是通过字面值，一种是通过new 1555406409236252.png 结果 1555406374767018.png 首先注意到，数组在创建的时候必须是在[ ]中指明了元素个数，或者使用[&amp;hellip;]结合{1, 2, 3}来创建也是可以的，因为这样也算是定</description>
+    </item>
+    
+    <item>
+      <title>Golang——new与make</title>
+      <link>http://fhstack.github.io/post/2019-04-15-golangnewyumake/</link>
+      <pubDate>Mon, 15 Apr 2019 14:44:44 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/post/2019-04-15-golangnewyumake/</guid>
+      <description>在go中要主动把变量定义在堆上只有这两中方法，make与new，二者间的区别是非常大的。 (ps: 为何要强调是主动呢？因为go会做逃逸分析，编译器会帮你去最终哪些变量会放在堆上，因此在go中是不需要像C/C++一样关心变量的开辟位置的） new go中的new与其他语言中的new语义不一样，C+</description>
+    </item>
+    
+    <item>
+      <title>知道这个坑，还是踩了</title>
+      <link>http://fhstack.github.io/post/2019-03-13-zhidaozhegekenghuanshicaile/</link>
+      <pubDate>Wed, 13 Mar 2019 03:28:35 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/post/2019-03-13-zhidaozhegekenghuanshicaile/</guid>
+      <description># 不要把全局变量放在任何 &amp;ldquo;:=&amp;ldquo;后面！！！ * * * 把Db作为全局变量，然后在init中Open的时候因为处理err，于是就 Db, err := sql.Open(&amp;ldquo;mysql&amp;rdquo;, dataSource) 结果再测的时候 ![][1] 想了半天怎么会访问非法内存的，后来就想起来了effective go上讲过这个坑，:=每次都会新创建并覆盖上层的</description>
+    </item>
+    
+    <item>
+      <title>golang1.4以上版本安装问题</title>
+      <link>http://fhstack.github.io/post/2019-03-05-golang1-4yishangbanbenanzhuangwenti/</link>
+      <pubDate>Tue, 05 Mar 2019 14:29:14 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/post/2019-03-05-golang1-4yishangbanbenanzhuangwenti/</guid>
+      <description>golang在1.4之前是由gcc进行语言源码的编译，在1.5后golang实现自举，因此也专门有了一个1.4-bootstrap版本，用来编译golang1.4后的版本。那么也就是说面，1.4版本之后的版本必须先配置1.4的go环境。 墙无法访问golang.org，需要去国内的</description>
+    </item>
+    
+  </channel>
+</rss>

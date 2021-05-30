@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Categories on Fh&#39;s Blog</title>
+    <link>http://fhstack.github.io/categories/</link>
+    <description>Recent content in Categories on Fh&#39;s Blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-CN</language>
+    <lastBuildDate>Fri, 26 Jun 2020 16:38:05 +0000</lastBuildDate><atom:link href="http://fhstack.github.io/categories/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Golang</title>
+      <link>http://fhstack.github.io/categories/Golang/</link>
+      <pubDate>Fri, 26 Jun 2020 16:38:05 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/categories/Golang/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>源码阅读</title>
+      <link>http://fhstack.github.io/categories/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB/</link>
+      <pubDate>Fri, 26 Jun 2020 16:38:05 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/categories/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>网络</title>
+      <link>http://fhstack.github.io/categories/%E7%BD%91%E7%BB%9C/</link>
+      <pubDate>Tue, 02 Jun 2020 03:02:05 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/categories/%E7%BD%91%E7%BB%9C/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>算法与数据结构</title>
+      <link>http://fhstack.github.io/categories/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/</link>
+      <pubDate>Sun, 12 May 2019 14:37:56 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/categories/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>linux</title>
+      <link>http://fhstack.github.io/categories/linux/</link>
+      <pubDate>Fri, 22 Mar 2019 06:36:51 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/categories/linux/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>杂记</title>
+      <link>http://fhstack.github.io/categories/%E6%9D%82%E8%AE%B0/</link>
+      <pubDate>Tue, 19 Feb 2019 16:00:10 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/categories/%E6%9D%82%E8%AE%B0/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>C/C&#43;&#43;</title>
+      <link>http://fhstack.github.io/categories/C/C&#43;&#43;/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>http://fhstack.github.io/categories/C/C&#43;&#43;/</guid>
+      <description></description>
+    </item>
+    
+  </channel>
+</rss>

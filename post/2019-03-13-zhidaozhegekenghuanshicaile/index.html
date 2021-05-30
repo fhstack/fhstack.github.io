@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <meta name="referrer" content="no-referrer-when-downgrade">
+    
+
+    <title>知道这个坑，还是踩了 | Fh&#39;s Blog</title>
+    <meta property="og:title" content="知道这个坑，还是踩了 - Fh&#39;s Blog">
+    <meta property="og:type" content="article">
+        
+    <meta property="article:published_time" content='2019-03-13T03:28:35&#43;08:00'>
+        
+        
+    <meta property="article:modified_time" content='2019-03-13T03:28:35&#43;08:00'>
+        
+    <meta name="Keywords" content="golang,go语言,redis,mysql,mongo,kafka,rocketMQ,消息中间件,分布一致性,算法,操作系统">
+    <meta name="description" content="知道这个坑，还是踩了">
+        <meta name="author" content="feihao">
+        
+    <meta property="og:url" content="http://fhstack.github.io/post/2019-03-13-zhidaozhegekenghuanshicaile/">
+    <link rel="shortcut icon" href='/favicon.ico'  type="image/x-icon">
+
+    <link rel="stylesheet" href='/css/normalize.css'>
+    <link rel="stylesheet" href='/css/style.css'>
+    <script type="text/javascript" src="//cdn.bootcdn.net/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+    
+    
+    
+    
+    
+    
+        <link rel="stylesheet" href='/css/douban.css'>
+    
+        <link rel="stylesheet" href='/css/other.css'>
+    
+</head>
+
+
+<body>
+    <header id="header" class="clearfix">
+    <div class="container">
+        <div class="col-group">
+            <div class="site-name ">
+                
+                    <a id="logo" href="http://fhstack.github.io/">
+                        Fh&#39;s Blog
+                    </a>
+                
+                <p class="description">已识乾坤大，犹怜草木青</p>
+            </div>
+            <div>
+                <nav id="nav-menu" class="clearfix">
+                    <a class="current" href="http://fhstack.github.io/">首页</a>
+                    
+                    <a  href="http://fhstack.github.io/tools/" title="工具">工具</a>
+                    
+                    <a  href="http://fhstack.github.io/archives/" title="归档">归档</a>
+                    
+                    <a  href="http://fhstack.github.io/about/" title="关于">关于</a>
+                    
+                </nav>
+            </div>
+        </div>
+    </div>
+</header>
+
+    <div id="body">
+        <div class="container">
+            <div class="col-group">
+
+                <div class="col-8" id="main">
+                    
+<div class="res-cons">
+    <style type="text/css">
+    .post-toc {
+        position: fixed;
+        width: 200px;
+        margin-left: -210px;
+        padding: 5px 10px;
+        font-family: Athelas, STHeiti, Microsoft Yahei, serif;
+        font-size: 12px;
+        border: 1px solid rgba(0, 0, 0, .07);
+        border-radius: 5px;
+        background-color: rgba(255, 255, 255, 0.98);
+        background-clip: padding-box;
+        -webkit-box-shadow: 1px 1px 2px rgba(0, 0, 0, .125);
+        box-shadow: 1px 1px 2px rgba(0, 0, 0, .125);
+        word-wrap: break-word;
+        white-space: nowrap;
+        -webkit-box-sizing: border-box;
+        box-sizing: border-box;
+        z-index: 999;
+        cursor: pointer;
+        max-height: 70%;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+
+    .post-toc .post-toc-title {
+        width: 100%;
+        margin: 0 auto;
+        font-size: 20px;
+        font-weight: 400;
+        text-transform: uppercase;
+        text-align: center;
+    }
+
+    .post-toc .post-toc-content {
+        font-size: 15px;
+    }
+
+    .post-toc .post-toc-content>nav>ul {
+        margin: 10px 0;
+    }
+
+    .post-toc .post-toc-content ul {
+        padding-left: 20px;
+        list-style: square;
+        margin: 0.5em;
+        line-height: 1.8em;
+    }
+
+    .post-toc .post-toc-content ul ul {
+        padding-left: 15px;
+        display: none;
+    }
+
+    @media print,
+    screen and (max-width:1057px) {
+        .post-toc {
+            display: none;
+        }
+    }
+</style>
+<div class="post-toc" style="position: absolute; top: 188px;">
+    <h2 class="post-toc-title">文章目录</h2>
+    <div class="post-toc-content">
+        <nav id="TableOfContents"></nav>
+    </div>
+</div>
+<script type="text/javascript">
+    $(document).ready(function () {
+        var postToc = $(".post-toc");
+        if (postToc.length) {
+            var leftPos = $("#main").offset().left;
+            if(leftPos<220){
+                postToc.css({"width":leftPos-10,"margin-left":(0-leftPos)})
+            }
+
+            var t = postToc.offset().top - 20,
+                a = {
+                    start: {
+                        position: "absolute",
+                        top: t
+                    },
+                    process: {
+                        position: "fixed",
+                        top: 20
+                    },
+                };
+            $(window).scroll(function () {
+                var e = $(window).scrollTop();
+                e < t ? postToc.css(a.start) : postToc.css(a.process)
+            })
+        }
+    })
+</script>
+    <article class="post">
+        <header>
+            <h1 class="post-title">知道这个坑，还是踩了</h1>
+        </header>
+        <date class="post-meta meta-date">
+            2019年3月13日
+        </date>
+        
+        <div class="post-meta">
+            <span>|</span>
+            
+            <span class="meta-category"><a href='/categories/Golang'>Golang</a></span>
+            
+        </div>
+        
+        
+        <div class="post-meta">
+            <span id="busuanzi_container_page_pv">|<span id="busuanzi_value_page_pv"></span><span>
+                    阅读</span></span>
+        </div>
+        
+        
+        <div class="post-content">
+            <p># 不要把全局变量放在任何  &ldquo;:=&ldquo;后面！！！ * * * 把Db作为全局变量，然后在init中Open的时候因为处理err，于是就</p>
+<p>Db, err := sql.Open(&ldquo;mysql&rdquo;, dataSource)</p>
+<p>结果再测的时候 ![][1] 想了半天怎么会访问非法内存的，后来就想起来了effective go上讲过这个坑，:=每次都会新创建并覆盖上层的变量！ 谨记！     []:data:image/png;base64,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</p>
+
+        </div>
+
+        
+<div class="post-archive">
+    <ul class="post-copyright">
+        <li><strong>原文作者：</strong><a rel="author" href="http://fhstack.github.io/">Fh</a></li>
+        <li style="word-break:break-all"><strong>原文链接：</strong><a href="http://fhstack.github.io/post/2019-03-13-zhidaozhegekenghuanshicaile/">http://fhstack.github.io/post/2019-03-13-zhidaozhegekenghuanshicaile/</a></li>
+        <li><strong>版权声明：</strong>本作品采用<a rel="license" href="https://creativecommons.org/licenses/by-nc-nd/4.0/">知识共享署名-非商业性使用-禁止演绎 4.0 国际许可协议</a>进行许可，非商业转载请注明出处（作者，原文链接），商业转载请联系作者获得授权。</li>
+    </ul>
+</div>
+<br/>
+
+
+
+        
+
+<div class="post-archive">
+    <h2>See Also</h2>
+    <ul class="listing">
+        
+        <li><a href="/post/2019-03-05-golang1-4yishangbanbenanzhuangwenti/">golang1.4以上版本安装问题</a></li>
+        
+        <li><a href="/post/2019-03-03-mainhanshushicchengxuzhixingderukouma/">main函数是C程序执行的入口吗？</a></li>
+        
+        <li><a href="/post/2019-02-20-ganxiekaiyuan/">感谢开源</a></li>
+        
+    </ul>
+</div>
+
+
+        <div class="post-meta meta-tags">
+            
+            没有标签
+            
+        </div>
+    </article>
+    
+    
+
+    
+    
+    <div class="post bg-white">
+      <script src="https://utteranc.es/client.js"
+            repo= "your github repo"
+            issue-term="pathname"
+            theme="github-light"
+            crossorigin="anonymous"
+            async>
+      </script>
+    </div>
+    
+</div>
+
+                    <footer id="footer">
+    <div>
+        &copy; 2021 <a href="http://fhstack.github.io/">Fh&#39;s Blog By Fh</a>
+        
+    </div>
+    <br />
+    <div>
+        <div class="github-badge">
+            <a href="https://gohugo.io/" target="_black" rel="nofollow"><span class="badge-subject">Powered by</span><span class="badge-value bg-blue">Hugo</span></a>
+        </div>
+        <div class="github-badge">
+            <a href="https://www.flysnow.org/" target="_black"><span class="badge-subject">Design by</span><span class="badge-value bg-brightgreen">飞雪无情</span></a>
+        </div>
+        <div class="github-badge">
+            <a href="https://github.com/flysnow-org/maupassant-hugo" target="_black"><span class="badge-subject">Theme</span><span class="badge-value bg-yellowgreen">Maupassant</span></a>
+        </div>
+    </div>
+</footer>
+
+
+    
+    <script type="text/javascript">
+        window.MathJax = {
+            tex2jax: {
+                inlineMath: [['$', '$']],
+                processEscapes: true
+                }
+            };
+    </script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML' async></script>
+
+<a id="rocket" href="#top"></a>
+<script type="text/javascript" src='/js/totop.js?v=0.0.0' async=""></script>
+
+
+
+    <script type="text/javascript" src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" async></script>
+
+
+
+
+    <script src='/js/douban.js'></script>
+
+                </div>
+
+                <div id="secondary">
+    <section class="widget">
+        <form id="search" action='http://fhstack.github.io/search/' method="get" accept-charset="utf-8" target="_blank" _lpchecked="1">
+      
+      <input type="text" name="q" maxlength="20" placeholder="Search">
+      <input type="hidden" name="sitesearch" value="http://fhstack.github.io/">
+      <button type="submit" class="submit icon-search"></button>
+</form>
+    </section>
+    
+    <section class="widget">
+        <h3 class="widget-title">最近文章</h3>
+<ul class="widget-list">
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2020-06-27-sync-mapyuanmayuedubiji/" title="sync.Map源码阅读笔记">sync.Map源码阅读笔记</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2020-06-02-quic/" title="QUIC">QUIC</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-06-17-redisyuanmapouxidicter/" title="Redis源码剖析——dict（二）">Redis源码剖析——dict（二）</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-06-14-redisyuanmapouxidict/" title="Redis源码剖析——dict（一）">Redis源码剖析——dict（一）</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-06-11-redisyuanmapouxiintset/" title="Redis源码剖析——intset">Redis源码剖析——intset</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-05-12-redisyuanmapouxihyperloglog/" title="Redis源码剖析——HyperLogLog">Redis源码剖析——HyperLogLog</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-05-08-redisyuanmapouxitiaobiaosan/" title="Redis源码剖析——跳表（三）">Redis源码剖析——跳表（三）</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-05-05-redisyuanmapouxitiaobiaoer/" title="Redis源码剖析——跳表（二）">Redis源码剖析——跳表（二）</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-05-03-redisyuanmapouxitiaobiaoyi/" title="Redis源码剖析——跳表（一）">Redis源码剖析——跳表（一）</a>
+    </li>
+    
+    <li>
+        <a href="http://fhstack.github.io/post/2019-04-20-nihuanzaizheyangxiekuaipai/" title="你还在这样写快排？">你还在这样写快排？</a>
+    </li>
+    
+</ul>
+    </section>
+
+    
+
+    <section class="widget">
+        <h3 class="widget-title"><a href='/categories/'>分类</a></h3>
+<ul class="widget-list">
+    
+    <li><a href="http://fhstack.github.io/categories/C/C&#43;&#43;/">C/C&#43;&#43; (1)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/Golang/">Golang (6)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/linux/">linux (3)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/%E6%9D%82%E8%AE%B0/">杂记 (1)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB/">源码阅读 (17)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/%E7%AE%97%E6%B3%95%E4%B8%8E%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/">算法与数据结构 (2)</a></li>
+    
+    <li><a href="http://fhstack.github.io/categories/%E7%BD%91%E7%BB%9C/">网络 (1)</a></li>
+    
+</ul>
+    </section>
+
+    <section class="widget">
+        <h3 class="widget-title"><a href='/tags/'>标签</a></h3>
+<div class="tagcloud">
+    
+</div>
+    </section>
+
+    
+<section class="widget">
+    <h3 class="widget-title">友情链接</h3>
+    <ul class="widget-list">
+        
+        <li>
+            <a target="_blank" href="https://www.github.com/fhstack" title="我的Github">我的Githhub</a>
+        </li>
+        
+    </ul>
+</section>
+
+
+    <section class="widget">
+        <h3 class="widget-title">其它</h3>
+        <ul class="widget-list">
+            <li><a href="http://fhstack.github.io/index.xml">文章 RSS</a></li>
+        </ul>
+    </section>
+</div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
